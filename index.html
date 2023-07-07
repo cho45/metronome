@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Metronome</title>
+
+		<link rev="made" href="mailto:cho45@lowreal.net">
+		<link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+		<link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
+		<link href="https://cdn.jsdelivr.net/npm/vuetify@3.3.2/dist/vuetify.min.css" rel="stylesheet">
+
+		<script src="lib/vue.global.js" defer></script>
+		<script src="https://cdn.jsdelivr.net/npm/vuetify@3.3.2/dist/vuetify.min.js" defer></script>
+		<script src="./lib/webaudiofont/npm/dist/WebAudioFontPlayer.js" defer></script>
+		<!-- https://surikov.github.io/webaudiofontdata/sound/drums_0_Chaos_sf2_fileDrum_Stan1_SC88P.html -->
+		<script src="script.js" type="module" defer></script>
+		<style>
+			.buttons > * {
+				margin: 2px;
+			}
+
+
+			.flash {
+				animation-duration: 0.1s;
+				animation-name: a-flash;
+				animation-iteration-count: 1;
+				animation-timing-function: linear;
+			}
+
+			@keyframes a-flash {
+				0% {
+					opacity: 0;
+					background: #000000;
+				}
+
+				90% {
+					opacity: 0;
+					background: #000000;
+				}
+
+				100% {
+					opacity: 1;
+					background: #ffffff;
+				}
+			}
+
+
+			@media (prefers-reduced-motion: reduce) {
+				.flash {
+					animation: none;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div id="app">
+			<v-app id="inspire">
+				<!-- v-navigation-drawer
+					model-value
+					class="pt-4"
+					color="grey-lighten-3"
+					rail
+					>
+					<v-avatar
+						v-for="n in 6"
+						:key="n"
+						:color="`grey-${n === 1 ? 'darken' : 'lighten'}-1`"
+						:size="n === 1 ? 36 : 20"
+						class="d-block text-center mx-auto mb-9"
+						></v-avatar>
+				</v-navigation-drawer -->
+
+				<v-main style="width: 500px; margin: auto;">
+					<v-container>
+						<v-select
+							label="Voice"
+							v-model="voice"
+							:items="voices"
+							item-title="name"
+							return-object
+							single-line
+							prepend-icon="mdi-metronome"
+							></v-select>
+						<v-select
+							label="Select"
+							v-model="rhythm"
+							:items="rhythms"
+							label="Rhythm"
+							item-title="name"
+							item-value="notes"
+							return-object
+							single-line
+							prepend-icon="mdi-music-circle-outline"
+							></v-select>
+						<v-text-field label="Tempo" v-model="bpm" type="number" hint="tempo in bpm=1/4" prepend-icon="mdi-music-note-quarter"></v-text-field>
+						<div class="buttons d-flex justify-space-between">
+							<v-btn variant="tonal" @click="bpm = +bpm - 10">-10</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm - 5">-5</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm - 1">-1</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm + 1">+1</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm + 5">+5</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm + 10">+10</v-btn>
+						</div>
+						<div style="margin: 10px; text-align: center">
+							<div v-if="playing">
+								<v-btn @click="stop" prepend-icon="mdi-stop-circle-outline" stacked>Stop</v-btn>
+							</div>
+							<div v-else>
+								<v-btn @click="start" prepend-icon="mdi-play-circle-outline" stacked>Start</v-btn>
+							</div>
+						</div>
+
+						<p>
+							Up Arrow: +1 bpm, Down Arrow: -1 bpm, Space: Start/Stop
+						</p>
+						<v-footer class="fg-grey-lighten-1">
+							<v-col class="text-disabled text-center mt-4" cols="12">
+								created by cho45
+							</v-col>
+						</v-footer>
+					</v-container>
+				</v-main>
+
+			</v-app>
+		</div>
+	</body>
+</html>
