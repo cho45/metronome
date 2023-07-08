@@ -17,10 +17,17 @@
 		<!-- https://surikov.github.io/webaudiofontdata/sound/drums_0_Chaos_sf2_fileDrum_Stan1_SC88P.html -->
 		<script src="script.js" type="module" defer></script>
 		<style>
-			.buttons > * {
-				margin: 2px;
+			img.note {
+				margin: 0 2px;
 			}
 
+			kbd {
+				font-family: Roboto;
+				padding: 0.2em 0.5em;
+				border: 1px solid #ccc;
+				border-radius: 3px;
+				font-size: 90%;
+			}
 
 			.flash {
 				animation-duration: 0.1s;
@@ -93,7 +100,34 @@
 							return-object
 							single-line
 							prepend-icon="mdi-music-circle-outline"
-							></v-select>
+							>
+							<template v-slot:selection="{ item, index }">
+								<span class="v-select__selection-text">
+									<img src="./img/notes/4note.svg" class="note" style="max-height: 1em">
+									{{ item.title }}
+								</span>
+							</template>
+							<template v-slot:item="{ item, index, props }">
+								<v-list-item v-bind="props">
+									<template v-slot:prepend="{ isActive, isSelected, isIndeterminate, select}">
+										<span class="pr-3" v-if="item.value.imgs">
+											<img class="note" v-for="img in item.value.imgs" :src="img" style="max-height: 1em">
+										</span>
+									</template>
+
+									<!--
+									<v-list-item-content>
+										<v-list-item-title>
+											<v-row no-gutters align="center">
+												<span>test {{ item.title }}</span>
+												<v-spacer></v-spacer>
+											</v-row>
+										</v-list-item-title>
+									</v-list-item-content>
+									-->
+								</v-list-item>
+							</template>
+						</v-select>
 						<v-text-field label="Tempo" v-model="bpm" type="number" hint="tempo in bpm=1/4" prepend-icon="mdi-music-note-quarter"></v-text-field>
 						<div class="buttons d-flex justify-space-between">
 							<v-btn variant="tonal" @click="bpm = +bpm - 10">-10</v-btn>
@@ -103,17 +137,17 @@
 							<v-btn variant="tonal" @click="bpm = +bpm + 5">+5</v-btn>
 							<v-btn variant="tonal" @click="bpm = +bpm + 10">+10</v-btn>
 						</div>
-						<div style="margin: 10px; text-align: center">
+						<div class="ma-6" style="text-align: center">
 							<div v-if="playing">
-								<v-btn @click="stop" prepend-icon="mdi-stop-circle-outline" stacked>Stop</v-btn>
+								<v-btn @click="stop" prepend-icon="mdi-stop-circle-outline" stacked color="red-darken-2">Stop</v-btn>
 							</div>
 							<div v-else>
-								<v-btn @click="start" prepend-icon="mdi-play-circle-outline" stacked>Start</v-btn>
+								<v-btn @click="start" prepend-icon="mdi-play-circle-outline" stacked color="green-darken-2">Start</v-btn>
 							</div>
 						</div>
 
-						<p>
-							Up Arrow: +1 bpm, Down Arrow: -1 bpm, Space: Start/Stop
+						<p class="pa-3">
+							<kbd>Up Arrow</kbd> +1 bpm, <kbd>Down Arrow</kbd> -1 bpm, <kbd>Space</kbd> Start/Stop
 						</p>
 						<v-footer class="fg-grey-lighten-1">
 							<v-col class="text-disabled text-center mt-4" cols="12">

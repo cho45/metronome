@@ -11,63 +11,59 @@ Vue.createApp({
 			rhythm: {},
 			rhythms: [
 				{
-					name: "𝅘𝅥",
+					name: "1",
+					imgs: [ "./img/notes/4note.svg" ],
 					notes: [4],
 				},
 				{
-					name: "𝅘𝅥𝅘𝅥",
-					notes: [4, 4],
+					name: "2",
+					imgs: Array(2).fill("./img/notes/4note.svg"),
+					notes: Array(2).fill(4),
 				},
 				{
-					name: "𝅘𝅥𝅘𝅥𝅘𝅥",
-					notes: [4, 4, 4],
+					name: "3",
+					imgs: Array(3).fill("./img/notes/4note.svg"),
+					notes: Array(3).fill(4),
 				},
 				{
-					name: "𝅘𝅥𝅘𝅥𝅘𝅥𝅘𝅥",
-					notes: [4, 4, 4, 4],
+					name: "4",
+					imgs: Array(4).fill("./img/notes/4note.svg"),
+					notes: Array(4).fill(4),
 				},
 				{
-					name: Array(5).fill("𝅘𝅥").join(""),
+					name: "5",
+					imgs: Array(5).fill("./img/notes/4note.svg"),
 					notes: Array(5).fill(4),
 				},
 				{
-					name: Array(6).fill("𝅘𝅥").join(""),
-					notes: Array(6).fill(4),
-				},
-				{
-					name: Array(7).fill("𝅘𝅥").join(""),
-					notes: Array(7).fill(4),
-				},
-				{
-					name: Array(8).fill("𝅘𝅥").join(""),
-					notes: Array(8).fill(4),
-				},
-				{
-					name: Array(9).fill("𝅘𝅥").join(""),
-					notes: Array(9).fill(4),
-				},
-				{
-					name: "𝅘𝅥𝅮𝅘𝅥𝅮",
+					name: "8x2",
+					imgs: ["./img/notes/8x2notes.svg"],
 					notes: [8, 8],
 				},
 				{
-					name: "3[𝅘𝅥𝅮𝅘𝅥𝅮𝅘𝅥𝅮]",
+					name: "Triplet",
+					imgs: ["./img/notes/triplet.svg"],
 					notes: [4*3, 4*3, 4*3],
 				},
+				/*
 				{
 					name: "𝅘𝅥𝅘𝅥 3[𝅘𝅥𝅮𝅘𝅥𝅮𝅘𝅥𝅮] 𝅘𝅥𝅮𝅘𝅥𝅮",
 					notes: [4, 4, 4*3, 4*3, 4*3, 8, 8],
 				},
+				*/
 				{
-					name: "3[𝅘𝅥𝅮-𝅘𝅥𝅮]",
+					name: "Triplet-1",
+					imgs: ["./img/notes/triplet-1.svg"],
 					notes: [4*3, {len: 4*3, volume: 0.0001}, 4*3],
 				},
 				{
-					name: "𝅘𝅥𝅯𝅘𝅥𝅯𝅘𝅥𝅯𝅘𝅥𝅯",
+					name: "16x4",
+					imgs: ["./img/notes/16x4notes.svg"],
 					notes: [16, 16, 16, 16],
 				},
 				{
-					name: "𝅘𝅥𝅯𝄿𝄿𝅘𝅥𝅯",
+					name: "16x4-2",
+					imgs: ["./img/notes/16x4-2notes.svg"],
 					notes: [16, {len: 16, volume: 0.0001}, {len: 16, volume: 0.0001}, 16],
 				},
 				{
