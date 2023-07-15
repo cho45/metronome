@@ -10,6 +10,7 @@
 		<link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
 		<link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
 		<link href="https://cdn.jsdelivr.net/npm/vuetify@3.3.2/dist/vuetify.min.css" rel="stylesheet">
+		<link rel="icon" href="favicon.png">
 
 		<script src="lib/vue.global.js" defer></script>
 		<script src="https://cdn.jsdelivr.net/npm/vuetify@3.3.2/dist/vuetify.min.js" defer></script>
@@ -27,6 +28,14 @@
 				border: 1px solid #ccc;
 				border-radius: 3px;
 				font-size: 90%;
+			}
+
+			.bpm .v-text-field input {
+				font-size: 200%;
+			}
+
+			.buttons .v-btn {
+				min-width: 50px;
 			}
 
 			.flash {
@@ -59,6 +68,17 @@
 					animation: none;
 				}
 			}
+
+
+			.keyboard-shortcut {
+				display: none;
+			}
+
+			@media (hover: hover) and (pointer: fine) {
+				.keyboard-shortcut {
+					display: block;
+				}
+			}
 		</style>
 	</head>
 	<body>
@@ -81,6 +101,46 @@
 
 				<v-main style="width: 500px; margin: auto;">
 					<v-container>
+						<div class="d-flex">
+							<div class="bpm">
+								<v-text-field style="width: 9em" ref="bpm" label="Tempo" v-model="bpm" type="number" suffix="bpm" variant="plain" hint="tempo in bpm=1/4" prepend-icon="mdi-music-note-quarter"></v-text-field>
+							</div>
+							<div class="pt-7 pl-8">
+								<v-btn variant="tonal" @click="tapTempoTap()" :color="tapTempo.active ? 'red-darken-4' : 'grey-darken-2' ">Tap Tempo</v-btn>
+							</div>
+							<div class="flex-fill pl-6" style="text-align: right">
+								<div v-if="playing">
+									<v-btn @click="stop" size="x-large" icon theme="dark" color="red-darken-2" title="Stop">
+										<v-icon size="x-large" icon="mdi-stop"></v-icon>
+									</v-btn>
+								</div>
+								<div v-else>
+									<v-btn @click="start" size="x-large" icon theme="dark" color="green-darken-2" title="Play">
+										<v-icon size="x-large" icon="mdi-play"></v-icon>
+									</v-btn>
+								</div>
+							</div>
+						</div>
+
+						<div class="buttons d-flex justify-space-between pb-8">
+							<v-btn variant="tonal" @click="bpm = +bpm - 10">-10</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm - 5">-5</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm - 1">-1</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm + 1">+1</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm + 5">+5</v-btn>
+							<v-btn variant="tonal" @click="bpm = +bpm + 10">+10</v-btn>
+						</div>
+
+						<div ref="volume">
+							<v-slider
+								v-model="volume"
+								min="0"
+								max="100"
+								step="1"
+								prepend-icon="mdi-volume-high"></v-slider>
+						</div>
+
+
 						<v-select
 							label="Voice"
 							v-model="voice"
@@ -103,7 +163,9 @@
 							>
 							<template v-slot:selection="{ item, index }">
 								<span class="v-select__selection-text">
-									<img src="./img/notes/4note.svg" class="note" style="max-height: 1em">
+									<span class="pr-3" v-if="item.value.imgs">
+										<img class="note" v-for="img in item.value.imgs" :src="img" style="max-height: 1em">
+									</span>
 									{{ item.title }}
 								</span>
 							</template>
@@ -128,30 +190,14 @@
 								</v-list-item>
 							</template>
 						</v-select>
-						<v-text-field label="Tempo" v-model="bpm" type="number" hint="tempo in bpm=1/4" prepend-icon="mdi-music-note-quarter"></v-text-field>
-						<div class="buttons d-flex justify-space-between">
-							<v-btn variant="tonal" @click="bpm = +bpm - 10">-10</v-btn>
-							<v-btn variant="tonal" @click="bpm = +bpm - 5">-5</v-btn>
-							<v-btn variant="tonal" @click="bpm = +bpm - 1">-1</v-btn>
-							<v-btn variant="tonal" @click="bpm = +bpm + 1">+1</v-btn>
-							<v-btn variant="tonal" @click="bpm = +bpm + 5">+5</v-btn>
-							<v-btn variant="tonal" @click="bpm = +bpm + 10">+10</v-btn>
-						</div>
-						<div class="ma-6" style="text-align: center">
-							<div v-if="playing">
-								<v-btn @click="stop" prepend-icon="mdi-stop-circle-outline" stacked color="red-darken-2">Stop</v-btn>
-							</div>
-							<div v-else>
-								<v-btn @click="start" prepend-icon="mdi-play-circle-outline" stacked color="green-darken-2">Start</v-btn>
-							</div>
-						</div>
 
-						<p class="pa-3">
+						<p class="pa-3 keyboard-shortcut">
 							<kbd>Up Arrow</kbd> +1 bpm, <kbd>Down Arrow</kbd> -1 bpm, <kbd>Space</kbd> Start/Stop
 						</p>
+
 						<v-footer class="fg-grey-lighten-1">
 							<v-col class="text-disabled text-center mt-4" cols="12">
-								created by cho45
+								<a href="https://github.com/cho45/metronome">repo</a>
 							</v-col>
 						</v-footer>
 					</v-container>

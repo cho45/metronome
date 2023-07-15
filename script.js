@@ -7,6 +7,11 @@ Vue.createApp({
 			playing: false,
 			bpm: 120,
 			flash: false,
+			volume: 100,
+
+			tapTempo: {
+				active: false,
+			},
 
 			rhythm: {},
 			rhythms: [
@@ -189,6 +194,30 @@ Vue.createApp({
 					volume: 0.8,
 				},
 				{
+					name: "Ride Cymbal",
+					file: "_drum_51_0_Chaos_sf2_file",
+					src: "./lib/webaudiofontdata/sound/12851_0_Chaos_sf2_file.js",
+					duration: 3.5,
+					pitch: 51,
+					volume: 0.8,
+				},
+				{
+					name: "Closed Hi-hat",
+					file: "_drum_42_0_Chaos_sf2_file",
+					src: "./lib/webaudiofontdata/sound/12842_0_Chaos_sf2_file.js",
+					duration: 3.5,
+					pitch: 42,
+					volume: 0.8,
+				},
+				{
+					name: "Pedal Hi-hat",
+					file: "_drum_44_0_Chaos_sf2_file",
+					src: "./lib/webaudiofontdata/sound/12844_0_Chaos_sf2_file.js",
+					duration: 3.5,
+					pitch: 44,
+					volume: 0.8,
+				},
+				{
 					name: "Stick",
 					file: "_drum_43_10_Chaos_sf2_file",
 					src: "./lib/webaudiofontdata/sound/12843_10_Chaos_sf2_file.js",
@@ -221,6 +250,10 @@ Vue.createApp({
 		rhythm: function() {
 			this.updateHashParams();
 		},
+		volume: function () {
+			this.updateHashParams();
+			this.channelMaster.output.gain.value = this.volume / 100;
+		},
 	},
 
 	mounted() {
@@ -228,6 +261,18 @@ Vue.createApp({
 		document.body.addEventListener("animationend", () => {
 			document.body.className = "";
 		}, false);
+
+		this.$refs.bpm.addEventListener("wheel", (e) => {
+			e.preventDefault();
+			console.log(e);
+			this.bpm += 1 * Math.sign(e.wheelDelta);
+		});
+
+		this.$refs.volume.addEventListener("wheel", (e) => {
+			e.preventDefault();
+			console.log(e);
+			this.volume += 1 * Math.sign(e.wheelDelta);
+		});
 
 		if (!this.audioContext) {
 			this.audioContext = new AudioContext();
@@ -250,6 +295,7 @@ Vue.createApp({
 		channelMaster.output.connect(audioContext.destination);
 
 		// ハイを上げて若干聞きとりやすくする
+		// GainNode と違い BiquadFilterNode の gain.value は dB 単位
 		channelMaster.band32.gain.value = 0;
 		channelMaster.band64.gain.value = 0;
 		channelMaster.band128.gain.value = 0;
@@ -263,18 +309,22 @@ Vue.createApp({
 		this.channelMaster = channelMaster;
 
 		window.addEventListener("keydown", (e) => {
+			e.stopPropagation();
 			if (e.code === "Space") {
 				if (this.playing) {
 					this.stop();
 				} else {
 					this.start();
 				}
+				e.preventDefault();
 			} else
 			if (e.code === "ArrowUp") {
 				this.bpm += 1;
+				e.preventDefault();
 			} else
 			if (e.code === "ArrowDown") {
 				this.bpm -= 1;
+				e.preventDefault();
 			}
 		});
 	},
@@ -285,27 +335,18 @@ Vue.createApp({
 			this.playing = true;
 			this.queued = [];
 
-			// ensure loading
-			await this.loadVoice(this.voice.src, this.voice.file);
-
-			let startTime = null;
-			console.log({startTime});
+			audioContext.resume();
+			// 初回の再生が遲れるが、開始タイミングを重視して現在時刻からスタートしたことにする
+			// 2回目からはタイミングがあう
+			let startTime = audioContext.currentTime; //  + (4 * 60 / this.bpm) * (1/4);
 			this.timer = setInterval( async () => {
-				if (!startTime) {
-					startTime = audioContext.currentTime + QUEUE_PREPARING_TIME / 2;
-				}  else {
-					if (audioContext.currentTime < startTime - QUEUE_PREPARING_TIME) {
-						return;
-					}
-				}
-				console.log('queue', {startTime}, audioContext.currentTime);
-
-
 				const drum = await this.loadVoice(this.voice.src, this.voice.file);
 				const { duration, pitch, volume } = this.voice;
 				const rhythm = this.rhythm.notes;
 				const sec = 4 * 60 / this.bpm; // quarter note
 
+
+				// console.log('queue', {startTime}, audioContext.currentTime);
 				// 0.1s 分キューイングしていく
 				while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
 					for (let i = 0, len = rhythm.length; i < len; i++) {
@@ -321,7 +362,7 @@ Vue.createApp({
 								queue.volumex = note.volume;
 							}
 						}
-						console.log(startTime, {pitch, volume}, note);
+						// console.log(startTime, {pitch, volume}, note);
 						player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 						if (this.flash) {
 							this.queued.push(startTime);
@@ -352,6 +393,31 @@ Vue.createApp({
 			this.playing = false;
 		},
 
+		tapTempoTap: function () {
+			const { tapTempo, audioContext } = this;
+			clearTimeout(tapTempo.timer);
+			audioContext.resume();
+
+			const isFirstTap = !tapTempo.active;
+			if (isFirstTap) {
+				tapTempo.active = true;
+				tapTempo.origin = performance.now();
+				tapTempo.count = 0;
+			} else {
+				tapTempo.count++;
+				const diff = performance.now() - tapTempo.origin;
+				const bpm = (tapTempo.count * 60000) / diff;
+				console.log('tap bpm', bpm);
+				this.bpm = Math.round(bpm);
+			}
+
+
+			tapTempo.timer = setTimeout(() => {
+				tapTempo.active = false;
+				tapTempo.count = 0;
+			}, 2000);
+		},
+
 		loadVoice: async function (src, name) {
 			const { player, audioContext } = this;
 			if (window[name]) {
@@ -373,6 +439,11 @@ Vue.createApp({
 			if (params.has("bpm") && +params.get("bpm")) {
 				console.log("load bpm from hash");
 				this.bpm = +params.get("bpm");
+			}
+
+			if (params.has("volume") && +params.get("volume")) {
+				console.log("load volume from hash");
+				this.volume = +params.get("volume");
 			}
 
 			if (params.has("voice")) {
@@ -400,6 +471,7 @@ Vue.createApp({
 			params.set("bpm", this.bpm);
 			params.set("voice", this.voice.name);
 			params.set("rhythm", this.rhythm.name);
+			params.set("volume", this.volume);
 			history.replaceState(null, "", "#" + params.toString());
 		},
 	},
