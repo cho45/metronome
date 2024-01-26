@@ -242,6 +242,12 @@ Vue.createApp({
 
 	watch: {
 		bpm: function () {
+			if (this.bpm >= 1000) {
+				this.bpm = 999;
+			}
+			if (this.bpm < 1) {
+				this.bpm = 1;
+			}
 			this.updateHashParams();
 		},
 		voice: function () {
@@ -310,20 +316,38 @@ Vue.createApp({
 
 		window.addEventListener("keydown", (e) => {
 			e.stopPropagation();
-			if (e.code === "Space") {
-				if (this.playing) {
-					this.stop();
-				} else {
-					this.start();
-				}
-				e.preventDefault();
-			} else
-			if (e.code === "ArrowUp") {
-				this.bpm += 1;
-				e.preventDefault();
-			} else
-			if (e.code === "ArrowDown") {
-				this.bpm -= 1;
+			const key =
+				(e.ctrlKey  ? 'Ctrl-'  : '') +
+				(e.shiftKey ? 'Shift-' : '') +
+				(e.altKey   ? 'Alt-'   : '') +
+				e.code;
+			console.log(key);
+			const func = {
+				"Space" : () => {
+					if (this.playing) {
+						this.stop();
+					} else {
+						this.start();
+					}
+				},
+				"Shift-Space" : () => {
+					this.tapTempoTap();
+				},
+				"ArrowUp" : () => {
+					this.bpm += 1;
+				},
+				"ArrowDown" : () => {
+					this.bpm -= 1;
+				},
+				"Shift-ArrowUp" : () => {
+					this.bpm += 10;
+				},
+				"Shift-ArrowDown" : () => {
+					this.bpm -= 10;
+				},
+			}[key];
+			if (func) {
+				func();
 				e.preventDefault();
 			}
 		});
@@ -373,11 +397,23 @@ Vue.createApp({
 			}, 20);
 
 			if (this.flash) {
+				let lastFlash = performance.now();
 				const updateFlash = () => {
 					if (!this.playing) return;
-					while (this.queued.length && this.queued[0] < audioContext.currentTime) {
-						document.body.className = "flash";
+					let flash = false;
+					while (this.queued.length && this.queued[0] <= audioContext.currentTime) {
 						this.queued.shift();
+						flash = true;
+					}
+
+					if (flash) {
+						const interval = performance.now() - lastFlash;
+						if (interval > 150) {
+							console.log({interval});
+							document.body.className = "flash";
+							window.navigator.vibrate(100);
+						}
+						lastFlash = performance.now();
 					}
 
 					requestAnimationFrame(updateFlash);

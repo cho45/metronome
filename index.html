@@ -45,6 +45,17 @@
 				animation-timing-function: linear;
 			}
 
+			.keyboard-shortcut .list {
+				padding: 5px 0;
+				display: flex;
+				flex-wrap: wrap;
+			}
+
+			.keyboard-shortcut .list span {
+				display: block;
+				padding: 0.5em 2em 0.5em 0;
+			}
+
 			@keyframes a-flash {
 				0% {
 					opacity: 0;
@@ -131,6 +142,11 @@
 							<v-btn variant="tonal" @click="bpm = +bpm + 10">+10</v-btn>
 						</div>
 
+						<div class="buttons d-flex justify-space-between pb-8">
+							<v-btn variant="tonal" @click="bpm = Math.round(+bpm / 2)">half</v-btn>
+							<v-btn variant="tonal" @click="bpm = Math.round(+bpm * 2)">double</v-btn>
+						</div>
+
 						<div ref="volume">
 							<v-slider
 								v-model="volume"
@@ -191,9 +207,16 @@
 							</template>
 						</v-select>
 
-						<p class="pa-3 keyboard-shortcut">
-							<kbd>Up Arrow</kbd> +1 bpm, <kbd>Down Arrow</kbd> -1 bpm, <kbd>Space</kbd> Start/Stop
-						</p>
+						<div class="keyboard-shortcut">
+							<div class="list">
+								<span><kbd>Space</kbd> Start/Stop</span>
+								<span><kbd>Shift</kbd> <kbd>Space</kbd> Tap Tempo</span>
+								<span><kbd>Up Arrow</kbd> +1 bpm</span>
+								<span><kbd>Down Arrow</kbd> -1 bpm</span>
+								<span><kbd>Shift</kbd> <kbd>Up Arrow</kbd> +10 bpm</span>
+								<span><kbd>Shift</kbd> <kbd>Down Arrow</kbd> -10 bpm</span>
+							</div>
+						</div>
 
 						<v-footer class="fg-grey-lighten-1">
 							<v-col class="text-disabled text-center mt-4" cols="12">
