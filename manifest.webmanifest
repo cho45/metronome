@@ -1,0 +1,15 @@
+{
+  "background_color": "black",
+  "description": "Simple Metronome",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "./favicon.png",
+      "sizes": "256x256",
+      "type": "image/png"
+    }
+  ],
+  "name": "Metronome",
+  "short_name": "Metronome",
+  "start_url": "./index.html"
+}

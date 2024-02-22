@@ -350,7 +350,7 @@ Vue.createApp({
 				func();
 				e.preventDefault();
 			}
-		});
+		}, true);
 	},
 
 	methods: {
