@@ -500,6 +500,10 @@ Vue.createApp({
 				}
 				console.log(this.rhythm);
 			}
+
+			if (params.has("flash")) {
+				this.flash = true;
+			}
 		},
 
 		updateHashParams: function () {
