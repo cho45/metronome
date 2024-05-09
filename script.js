@@ -133,6 +133,45 @@ Vue.createApp({
 						16,
 					]
 				},
+				{
+					name: "1/4 Upbeat Support",
+					voices: [
+						"Snare Drum",
+						"Bass Drum",
+					],
+					notes: function me (n) {
+						const x = !(Math.floor(n / 8) % 2);
+						return {
+							len: 8,
+							volume: x ? 0.5: (n % 2) ? "Snare Drum" : 0.0001,
+							voice: (n % 2) ? "Snare Drum" : "Bass Drum",
+						};
+					}
+				},
+				{
+					name: "1/4 Triplet Upbeat Support",
+					voices: [
+						"Bass Drum",
+						"Side Stick",
+						"Snare Drum",
+					],
+					notes: function me (n) {
+						const x = !(Math.floor(n / (3*4)) % 2);
+						return {
+							len: 4*3,
+							volume: x ? 0.5 : [
+								0.0001,
+								0.0001,
+								0.5
+							][n % 3],
+							voice: [
+								"Bass Drum",
+								"Side Stick",
+								"Snare Drum",
+							][(n % 3)]
+						};
+					}
+				},
 			],
 
 			voice: {},
@@ -358,34 +397,59 @@ Vue.createApp({
 			const { player, audioContext, channelMaster } = this;
 			this.playing = true;
 			this.queued = [];
+			this.noteCount = 0;
 
 			audioContext.resume();
 			// 初回の再生が遲れるが、開始タイミングを重視して現在時刻からスタートしたことにする
 			// 2回目からはタイミングがあう
 			let startTime = audioContext.currentTime; //  + (4 * 60 / this.bpm) * (1/4);
 			this.timer = setInterval( async () => {
-				const drum = await this.loadVoice(this.voice.src, this.voice.file);
-				const { duration, pitch, volume } = this.voice;
-				const rhythm = this.rhythm.notes;
-				const sec = 4 * 60 / this.bpm; // quarter note
+				if (!this.rhythm.voices)  {
+					const drum = await this.loadVoice(this.voice.src, this.voice.file);
+					const { duration, pitch, volume } = this.voice;
+					const rhythm = this.rhythm.notes;
+					const sec = 4 * 60 / this.bpm; // quarter note
 
 
-				// console.log('queue', {startTime}, audioContext.currentTime);
-				// 0.1s 分キューイングしていく
-				while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
-					for (let i = 0, len = rhythm.length; i < len; i++) {
-						const note = rhythm[i];
-						const queue = {
-							volumex: (i == 0) ? 1.0 : 0.5,
-						};
-						if (typeof note === 'number') {
-							queue.length = 1/note * sec;
-						} else {
-							queue.length = 1/note.len * sec;
-							if (note.volume) {
-								queue.volumex = note.volume;
+					// console.log('queue', {startTime}, audioContext.currentTime);
+					// 0.1s 分キューイングしていく
+					while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
+						for (let i = 0, len = rhythm.length; i < len; i++) {
+							const note = rhythm[i];
+							const queue = {
+								volumex: (i == 0) ? 1.0 : 0.5,
+							};
+							if (typeof note === 'number') {
+								queue.length = 1/note * sec;
+							} else {
+								queue.length = 1/note.len * sec;
+								if (note.volume) {
+									queue.volumex = note.volume;
+								}
 							}
+							// console.log(startTime, {pitch, volume}, note);
+							player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
+							if (this.flash) {
+								this.queued.push(startTime);
+							}
+							startTime += queue.length;
 						}
+					}
+				} else {
+					const voices = new Map();
+					for (let name of this.rhythm.voices) {
+						const voice = this.voices.find(i => i.name === name);
+						voices.set(name, {voice, drum: await this.loadVoice(voice.src, voice.file)});
+					}
+					const sec = 4 * 60 / this.bpm; // quarter note
+					while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
+						const note = this.rhythm.notes(this.noteCount++);
+						const queue = {
+							length: 1/note.len * sec,
+							volumex: note.volume
+						};
+						const { duration, pitch, volume } = voices.get(note.voice).voice;
+						const drum = voices.get(note.voice).drum;
 						// console.log(startTime, {pitch, volume}, note);
 						player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 						if (this.flash) {

@@ -157,16 +157,6 @@
 								prepend-icon="mdi-volume-high"></v-slider>
 						</div>
 
-
-						<v-select
-							label="Voice"
-							v-model="voice"
-							:items="voices"
-							item-title="name"
-							return-object
-							single-line
-							prepend-icon="mdi-metronome"
-							></v-select>
 						<v-select
 							label="Select"
 							v-model="rhythm"
@@ -207,6 +197,17 @@
 								</v-list-item>
 							</template>
 						</v-select>
+
+						<v-select
+							label="Voice"
+							v-model="voice"
+							:items="voices"
+							item-title="name"
+							return-object
+							single-line
+							prepend-icon="mdi-metronome"
+							:disabled="rhythm.voices"
+							></v-select>
 
 						<div class="keyboard-shortcut">
 							<div class="list">
