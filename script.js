@@ -1,6 +1,23 @@
 
 const QUEUE_PREPARING_TIME = 0.1;
 
+const DEFAULT_MIDI_SETTINGS = {
+	channel: 15,
+	ccSetTempoMSB: 74, // value: 0-2
+	ccSetTempoLSB: 75, // value: 0-127
+	ccTapTempo: 76,
+	ccSetTempoRelative: 90, // value: 0-127: -64 to 63
+	ccIncrement: 91,
+	ccDecrement: 92,
+	ccIncrement5: 93,
+	ccDecrement5: 94,
+	ccIncrement10: 95,
+	ccDecrement10: 96,
+	ccSetTempoHalf: 97,
+	ccSetTempoDouble: 98,
+	ccStartStop: 100,
+};
+
 Vue.createApp({
 	data() {
 		return {
@@ -12,6 +29,9 @@ Vue.createApp({
 			tapTempo: {
 				active: false,
 			},
+
+			midiSettings: DEFAULT_MIDI_SETTINGS,
+			midiConnected: false,
 
 			rhythm: {},
 			rhythms: [
@@ -272,7 +292,9 @@ Vue.createApp({
 					pitch: 43,
 					volume: 0.8,
 				}
-			]
+			],
+
+			midiDialog: false,
 		}
 	},
 
@@ -298,6 +320,12 @@ Vue.createApp({
 		volume: function () {
 			this.updateHashParams();
 			this.channelMaster.output.gain.value = this.volume / 100;
+		},
+		midiSettings: {
+			handler: function () {
+				this.saveMidiSettings();
+			},
+			deep: true
 		},
 	},
 
@@ -390,6 +418,9 @@ Vue.createApp({
 				e.preventDefault();
 			}
 		}, true);
+
+		this.loadMidiSettings();
+		this.autoConnectMidi();
 	},
 
 	methods: {
@@ -568,6 +599,10 @@ Vue.createApp({
 			if (params.has("flash")) {
 				this.flash = true;
 			}
+
+			if (params.has("midi")) {
+				this.midiDialog = true;
+			}
 		},
 
 		updateHashParams: function () {
@@ -578,6 +613,132 @@ Vue.createApp({
 			params.set("volume", this.volume);
 			history.replaceState(null, "", "#" + params.toString());
 		},
+
+		loadMidiSettings: async function () {
+			let midiSettings;
+			try {
+				midiSettings = JSON.parse(localStorage.getItem('midiSettings'));
+			} catch (e) {
+				console.log('failed to load midi settings');
+			}
+			// merge
+			this.midiSettings = Object.assign({}, DEFAULT_MIDI_SETTINGS, midiSettings);
+		},
+
+		saveMidiSettings: async function () {
+			console.log('saveMidiSettings');
+			localStorage.setItem('midiSettings', JSON.stringify(this.midiSettings));
+		},
+
+		initMidi: async function () {
+			this.saveMidiSettings();
+			this.connectMidi();
+		},
+
+		processMidiMessage: async function (data) {
+			// https://midi.org/summary-of-midi-1-0-messages
+			const status = data[0] & 0xF0;
+			const channel = (data[0] & 0x0F) + 1;
+			console.log(`status: ${status.toString(2)}, channel: ${channel}`);
+			if (+this.midiSettings.channel !== 0 && channel !== +this.midiSettings.channel) {
+				return;
+			}
+
+			const CC_STATUS = 0xB0;
+			if (status !== CC_STATUS) {
+				return;
+			}
+
+			const cc = data[1];
+			const value = data[2];
+			console.log(`cc: ${cc}, value: ${value}`);
+
+			if (cc === +this.midiSettings.ccStartStop) {
+				if (this.playing) {
+					this.stop();
+				} else {
+					this.start();
+				}
+			} else
+			if (cc === +this.midiSettings.ccTapTempo) {
+				this.tapTempoTap();
+			} else
+			if (cc === +this.midiSettings.ccSetTempoMSB) {
+				this.bpm = (this.bpm & 0x7F) | (value << 7);
+			} else
+			if (cc === +this.midiSettings.ccSetTempoLSB) {
+				this.bpm = (this.bpm & 0x3F80) | value;
+			} else
+			if (cc === +this.midiSettings.ccSetTempoRelative) {
+				this.bpm += value - 64;
+			} else
+			if (cc === +this.midiSettings.ccIncrement) {
+				this.bpm += 1;
+			} else
+			if (cc === +this.midiSettings.ccDecrement) {
+				this.bpm -= 1;
+			} else
+			if (cc === +this.midiSettings.ccIncrement5) {
+				this.bpm += 5;
+			} else
+			if (cc === +this.midiSettings.ccDecrement5) {
+				this.bpm -= 5;
+			} else
+			if (cc === +this.midiSettings.ccIncrement10) {
+				this.bpm += 10;
+			} else
+			if (cc === +this.midiSettings.ccDecrement10) {
+				this.bpm -= 10;
+			} else
+			if (cc === +this.midiSettings.ccSetTempoHalf) {
+				this.bpm = Math.round(+this.bpm / 2);
+			} else
+			if (cc === +this.midiSettings.ccSetTempoDouble) {
+				this.bpm = Math.round(+this.bpm * 2);
+			}
+		},
+
+		autoConnectMidi: async function () {
+			const result = await navigator.permissions.query({ name: "midi" });
+			if (result.state === "granted") {
+				this.connectMidi();
+			} else if (result.state === "prompt") {
+				console.log('prompt');
+			} else {
+				console.log('denied');
+			}
+		},
+
+		connectMidi: async function () {
+			const onmidimessage = (event) => {
+				const dump = Array.from(event.data).map(n => (0x100 + n).toString(16).slice(1) ).join(' ')
+				// console.log(event);
+				console.log(event, dump);
+				this.processMidiMessage(event.data);
+			};
+
+			console.log('connectMidi');
+			const midi = await navigator.requestMIDIAccess({});
+			midi.onstatechange = function (event) {
+				if (event.port.type !== 'input') {
+					return;
+				}
+				if (event.port.state === 'connected') {
+					console.log(`MIDI connected: ${event.port.name}`);
+					event.port.onmidimessage = onmidimessage;
+				} else
+				if (event.port.state === 'disconnected') {
+					console.log(`MIDI disconnected: ${event.port.name}`);
+				}
+			};
+
+			for (let input of midi.inputs.values()) {
+				input.onmidimessage = onmidimessage;
+			}
+
+			this.midiConnected = true;
+		},
+
 	},
 }).use(Vuetify.createVuetify({
 	theme: {

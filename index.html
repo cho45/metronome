@@ -57,6 +57,11 @@
 				padding: 0.5em 2em 0.5em 0;
 			}
 
+			.midi-table {
+				font-family: Roboto;
+				font-weight: 300;
+			}
+
 			@keyframes a-flash {
 				0% {
 					opacity: 0;
@@ -209,6 +214,12 @@
 							:disabled="rhythm.voices"
 							></v-select>
 
+						<div style="text-align: right">
+							<v-btn @click="midiDialog = true" prepend-icon="mdi-midi" :variant="midiConnected ? 'tonal' : 'flat'" density="compact" color="blue-grey">
+								MIDI
+							</v-btn>
+						</div>
+
 						<div class="keyboard-shortcut">
 							<div class="list">
 								<span><kbd>Space</kbd> Start/Stop</span>
@@ -225,6 +236,117 @@
 								<a href="https://github.com/cho45/metronome">repo</a>
 							</v-col>
 						</v-footer>
+
+						<v-dialog v-model="midiDialog" width="auto">
+							<v-card
+								max-width="1000"
+								prepend-icon="mdi-midi"
+								title="MIDI Settings"
+								>
+
+								<template v-slot:text>
+									<v-select label="Channel" v-model="midiSettings.channel" :items=" [{t:'Omni',v:0}].concat(Array.from(Array(16)).map((_,n)=>({t:n+1,v:n+1})))" persistent-hint item-title="t" item-value="v"></v-select>
+									<v-table density="compact" class="midi-table">
+										<template v-if="1">
+											<thead>
+												<tr>
+													<th>CC#</th>
+													<th>Value</th>
+													<th>Description</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr>
+													<td>74</td>
+													<td>0-127</td>
+													<td>Set Tempo MSB</td>
+												</tr>
+												<tr>
+													<td>75</td>
+													<td>0-127</td>
+													<td>Set Tempo LSB</td>
+												</tr>
+												<tr>
+													<td>76</td>
+													<td>0-127</td>
+													<td>Tap Tempo</td>
+												</tr>
+												<tr>
+													<td>90</td>
+													<td>0-127: -64-63</td>
+													<td>Set Tempo Relative</td>
+												</tr>
+												<tr>
+													<td>91</td>
+													<td>0-127</td>
+													<td>Increment BPM</td>
+												</tr>
+												<tr>
+													<td>92</td>
+													<td>0-127</td>
+													<td>Decrement BPM</td>
+												</tr>
+												<tr>
+													<td>93</td>
+													<td>0-127</td>
+													<td>Increment BPM 5</td>
+												</tr>
+												<tr>
+													<td>94</td>
+													<td>0-127</td>
+													<td>Decrement BPM 5</td>
+												</tr>
+												<tr>
+													<td>95</td>
+													<td>0-127</td>
+													<td>Increment BPM 10</td>
+												</tr>
+												<tr>
+													<td>95</td>
+													<td>0-127</td>
+													<td>Decrement BPM 10</td>
+												</tr>
+												<tr>
+													<td>96</td>
+													<td>0-127</td>
+													<td>Half Tempo</td>
+												</tr>
+												<tr>
+													<td>97</td>
+													<td>0-127</td>
+													<td>Double Tempo</td>
+												</tr>
+												<tr>
+													<td>100</td>
+													<td>0-127</td>
+													<td>Start/Stop</td>
+											</tbody>
+										</template>
+									</v-table>
+								</template>
+
+								<template v-slot:actions>
+									<v-btn
+										v-if="!midiConnected"
+										class="ms-auto"
+										text="Connect"
+										@click="initMidi"
+										></v-btn>
+									<v-btn
+										v-if="midiConnected"
+										disabled
+										class="ms-auto"
+										text="Connected"
+										@click="initMidi"
+										></v-btn>
+									<v-btn
+										class="ms-auto"
+										text="Close"
+										@click="midiDialog = false"
+										></v-btn>
+								</template>
+							</v-card>
+						</v-dialog>
 					</v-container>
 				</v-main>
 
