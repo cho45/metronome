@@ -1,5 +1,5 @@
 
-const QUEUE_PREPARING_TIME = 0.1;
+const QUEUE_PREPARING_TIME = 0.5;
 
 const DEFAULT_MIDI_SETTINGS = {
 	channel: 15,
