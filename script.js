@@ -1,4 +1,3 @@
-
 const QUEUE_PREPARING_TIME = 0.5;
 
 const DEFAULT_MIDI_SETTINGS = {
@@ -17,6 +16,26 @@ const DEFAULT_MIDI_SETTINGS = {
 	ccSetTempoDouble: 98,
 	ccStartStop: 100,
 };
+
+// WebWorkerを使用してスケジュールを管理するためのWorkerスクリプト
+const workerScript = `
+self.onmessage = function(e) {
+  const { interval } = e.data;
+  function tick() {
+    postMessage('tick');
+    setTimeout(tick, interval);
+  }
+  tick();
+};
+`;
+
+// Workerを作成する関数
+function createWorker(script) {
+  const blob = new Blob([script], { type: 'application/javascript' });
+  return new Worker(URL.createObjectURL(blob));
+}
+
+
 
 Vue.createApp({
 	data() {
@@ -419,6 +438,19 @@ Vue.createApp({
 			}
 		}, true);
 
+		const fit = () => {
+			const viewportW = document.documentElement.clientWidth;
+			const viewportH = document.documentElement.clientHeight;
+			const scaleX = viewportW / 500;
+			const scaleY = viewportH / this.$refs.container.$el.offsetHeight;
+			console.log('fit', {scaleX, scaleY});
+			const scale = Math.min(scaleX, scaleY);
+			this.$el.style.transformOrigin = "top center";
+			this.$el.style.transform = `scale(${scale})`;
+		};
+		fit();
+		window.addEventListener("resize", fit);
+
 		this.loadMidiSettings();
 		this.autoConnectMidi();
 	},
@@ -431,19 +463,22 @@ Vue.createApp({
 			this.noteCount = 0;
 
 			audioContext.resume();
-			// 初回の再生が遲れるが、開始タイミングを重視して現在時刻からスタートしたことにする
-			// 2回目からはタイミングがあう
-			let startTime = audioContext.currentTime; //  + (4 * 60 / this.bpm) * (1/4);
-			this.timer = setInterval( async () => {
-				if (!this.rhythm.voices)  {
+			let startTime = audioContext.currentTime;
+
+			// Workerを作成してスケジュールを管理
+			if (this.timerWorker) {
+				this.timerWorker.terminate();
+			}
+			this.timerWorker = createWorker(workerScript);
+			this.timerWorker.postMessage({ interval: 20 });
+
+			this.timerWorker.onmessage = async () => {
+				if (!this.rhythm.voices) {
 					const drum = await this.loadVoice(this.voice.src, this.voice.file);
 					const { duration, pitch, volume } = this.voice;
 					const rhythm = this.rhythm.notes;
-					const sec = 4 * 60 / this.bpm; // quarter note
+					const sec = 4 * 60 / this.bpm;
 
-
-					// console.log('queue', {startTime}, audioContext.currentTime);
-					// 0.1s 分キューイングしていく
 					while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
 						for (let i = 0, len = rhythm.length; i < len; i++) {
 							const note = rhythm[i];
@@ -451,14 +486,13 @@ Vue.createApp({
 								volumex: (i == 0) ? 1.0 : 0.5,
 							};
 							if (typeof note === 'number') {
-								queue.length = 1/note * sec;
+								queue.length = 1 / note * sec;
 							} else {
-								queue.length = 1/note.len * sec;
+								queue.length = 1 / note.len * sec;
 								if (note.volume) {
 									queue.volumex = note.volume;
 								}
 							}
-							// console.log(startTime, {pitch, volume}, note);
 							player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 							if (this.flash) {
 								this.queued.push(startTime);
@@ -470,18 +504,17 @@ Vue.createApp({
 					const voices = new Map();
 					for (let name of this.rhythm.voices) {
 						const voice = this.voices.find(i => i.name === name);
-						voices.set(name, {voice, drum: await this.loadVoice(voice.src, voice.file)});
+						voices.set(name, { voice, drum: await this.loadVoice(voice.src, voice.file) });
 					}
-					const sec = 4 * 60 / this.bpm; // quarter note
+					const sec = 4 * 60 / this.bpm;
 					while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
 						const note = this.rhythm.notes(this.noteCount++);
 						const queue = {
-							length: 1/note.len * sec,
+							length: 1 / note.len * sec,
 							volumex: note.volume
 						};
 						const { duration, pitch, volume } = voices.get(note.voice).voice;
 						const drum = voices.get(note.voice).drum;
-						// console.log(startTime, {pitch, volume}, note);
 						player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 						if (this.flash) {
 							this.queued.push(startTime);
@@ -489,7 +522,7 @@ Vue.createApp({
 						startTime += queue.length;
 					}
 				}
-			}, 20);
+			};
 
 			if (this.flash) {
 				let lastFlash = performance.now();
@@ -504,7 +537,7 @@ Vue.createApp({
 					if (flash) {
 						const interval = performance.now() - lastFlash;
 						if (interval > 150) {
-							console.log({interval});
+							console.log({ interval });
 							document.body.className = "flash";
 							window.navigator.vibrate(100);
 						}
@@ -519,7 +552,10 @@ Vue.createApp({
 
 		stop: function () {
 			const { player, audioContext } = this;
-			clearInterval(this.timer);
+			if (this.timerWorker) {
+				this.timerWorker.terminate();
+				this.timerWorker = null;
+			}
 			player.cancelQueue(audioContext);
 			this.playing = false;
 		},
@@ -718,7 +754,9 @@ Vue.createApp({
 			};
 
 			console.log('connectMidi');
-			const midi = await navigator.requestMIDIAccess({});
+			const midi = await navigator.requestMIDIAccess({
+				sysex: false
+			});
 			midi.onstatechange = function (event) {
 				if (event.port.type !== 'input') {
 					return;
@@ -745,5 +783,3 @@ Vue.createApp({
 		defaultTheme: 'light' // or dark
 	}
 })).mount("#app");
-
-
