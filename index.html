@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<meta name="viewport" content="width=500">
 
 		<title>Metronome</title>
 
@@ -74,7 +74,7 @@
 				}
 
 				100% {
-					opacity: 1;
+					opacity: 0;
 					background: #ffffff;
 				}
 			}
@@ -117,10 +117,10 @@
 				</v-navigation-drawer -->
 
 				<v-main style="width: 500px; margin: auto;">
-					<v-container>
+					<v-container ref="container">
 						<div class="d-flex">
 							<div class="bpm">
-								<v-text-field style="width: 9em" ref="bpm" label="Tempo" v-model="bpm" type="number" suffix="bpm" variant="plain" hint="tempo in bpm=1/4" prepend-icon="mdi-music-note-quarter"></v-text-field>
+								<v-text-field style="width: 9em" ref="bpm" label="Tempo" v-model="bpm" type="number" suffix="bpm" variant="plain" hint="tempo in bpm=1/4" prepend-icon="mdi-metronome"></v-text-field>
 							</div>
 							<div class="pt-7 pl-8">
 								<v-btn variant="tonal" @click="tapTempoTap()" :color="tapTempo.active ? 'red-darken-4' : 'grey-darken-2' ">Tap Tempo</v-btn>
@@ -210,7 +210,7 @@
 							item-title="name"
 							return-object
 							single-line
-							prepend-icon="mdi-metronome"
+							prepend-icon="mdi-music-note-quarter"
 							:disabled="rhythm.voices"
 							></v-select>
 
