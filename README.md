@@ -2,6 +2,8 @@
 
 This is a simple metronome using [WebAudioFont](https://github.com/surikov/webaudiofont)
 
+![Screenshot]( ./doc/screenshot.png )
+
 ## Overview
 
 This project is a simple metronome application built with WebAudioFont. Its main features are as follows:
