@@ -350,6 +350,9 @@ Vue.createApp({
 
 	mounted() {
 		console.log("mounted");
+
+		this._loadedVoices = new Map();
+
 		document.body.addEventListener("animationend", () => {
 			document.body.className = "";
 		}, false);
@@ -496,6 +499,7 @@ Vue.createApp({
 							player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 							if (this.flash) {
 								this.queued.push(startTime);
+								console.log('queued', startTime, queue.length);
 							}
 							startTime += queue.length;
 						}
@@ -587,17 +591,16 @@ Vue.createApp({
 
 		loadVoice: async function (src, name) {
 			const { player, audioContext } = this;
-			if (window[name]) {
-				return Promise.resolve(window[name]);
-			} else {
-				console.log('loading', src, name);
-				return new Promise( (resolve) => {
+			if (!this._loadedVoices.has(name)) {
+				this._loadedVoices.set(name, new Promise((resolve) => {
 					player.loader.startLoad(audioContext, src, name);
 					player.loader.waitLoad(() => {
+						console.log("loaded voice", name);
 						resolve(window[name]);
 					});
-				});
+				}));
 			}
+			return this._loadedVoices.get(name);
 		},
 
 		loadHashParams: function () {
