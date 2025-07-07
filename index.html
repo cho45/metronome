@@ -120,19 +120,19 @@
 					<v-container ref="container">
 						<div class="d-flex">
 							<div class="bpm">
-								<v-text-field style="width: 9em" ref="bpm" label="Tempo" v-model="bpm" type="number" suffix="bpm" variant="plain" hint="tempo in bpm=1/4" prepend-icon="mdi-metronome"></v-text-field>
+								<v-text-field style="width: 9em" ref="bpm" label="Tempo" v-model="bpm" type="number" suffix="bpm" variant="plain" hint="tempo in bpm=1/4" prepend-icon="mdi-metronome" data-testid="bpm-input"></v-text-field>
 							</div>
 							<div class="pt-7 pl-8">
-								<v-btn variant="tonal" @click="tapTempoTap()" :color="tapTempo.active ? 'red-darken-4' : 'grey-darken-2' ">Tap Tempo</v-btn>
+								<v-btn variant="tonal" @click="tapTempoTap()" :color="tapTempo.active ? 'red-darken-4' : 'grey-darken-2' " data-testid="tap-tempo-button">Tap Tempo</v-btn>
 							</div>
 							<div class="flex-fill pl-6" style="text-align: right">
 								<div v-if="playing">
-									<v-btn @click="stop" size="x-large" icon theme="dark" color="red-darken-2" title="Stop">
+									<v-btn @click="stop" size="x-large" icon theme="dark" color="red-darken-2" title="Stop" data-testid="stop-button">
 										<v-icon size="x-large" icon="mdi-stop"></v-icon>
 									</v-btn>
 								</div>
 								<div v-else>
-									<v-btn @click="start" size="x-large" icon theme="dark" color="green-darken-2" title="Play">
+									<v-btn @click="start" size="x-large" icon theme="dark" color="green-darken-2" title="Play" data-testid="play-button">
 										<v-icon size="x-large" icon="mdi-play"></v-icon>
 									</v-btn>
 								</div>
@@ -159,7 +159,8 @@
 								min="0"
 								max="100"
 								step="1"
-								prepend-icon="mdi-volume-high"></v-slider>
+								prepend-icon="mdi-volume-high"
+								data-testid="volume-slider"></v-slider>
 						</div>
 
 						<v-select
@@ -172,6 +173,7 @@
 							return-object
 							single-line
 							prepend-icon="mdi-music-circle-outline"
+							data-testid="rhythm-selector"
 							>
 							<template v-slot:selection="{ item, index }">
 								<span class="v-select__selection-text">
@@ -212,6 +214,7 @@
 							single-line
 							prepend-icon="mdi-music-note-quarter"
 							:disabled="rhythm.voices"
+							data-testid="voice-selector"
 							></v-select>
 
 						<div style="text-align: right">

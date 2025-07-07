@@ -1,0 +1,18 @@
+{
+  "name": "metronome",
+  "version": "1.0.0",
+  "description": "Web-based metronome application",
+  "scripts": {
+    "test": "CI=1 playwright test --project=ui --project=timing",
+    "test:all": "CI=1 playwright test",
+    "test:ui": "CI=1 playwright test --project=ui",
+    "test:timing": "CI=1 playwright test --project=timing",
+    "test:headed": "playwright test --headed",
+    "test:ui-headed": "playwright test --project=ui --headed",
+    "serve": "npx serve . -l 8000"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "playwright": "^1.53.2"
+  }
+}
