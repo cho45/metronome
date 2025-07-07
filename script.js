@@ -35,6 +35,38 @@ function createWorker(script) {
   return new Worker(URL.createObjectURL(blob));
 }
 
+// beat() DSL - リズム定義用の統一的なインターフェース
+function beat(length) {
+	return {
+		len: length,
+		volume: 0.8,
+		voice: null,
+		
+		rest() { return { ...this, volume: 0.0001 }; },
+		accent() { return { ...this, volume: 1.0 }; },
+		soft() { return { ...this, volume: 0.5 }; },
+		voice(name) { return { ...this, voice: name }; },
+		volume(v) { return { ...this, volume: v }; },
+		triplet() { return { ...this, len: this.len * 3 }; }
+	};
+}
+
+// Generator関数ヘルパー
+function* pattern(...notes) {
+	while (true) {
+		for (const note of notes) {
+			yield note;
+		}
+	}
+}
+
+function* sequence(logic) {
+	let n = 0;
+	while (true) {
+		yield logic(n++);
+	}
+}
+
 
 
 Vue.createApp({
@@ -57,37 +89,78 @@ Vue.createApp({
 				{
 					name: "1",
 					imgs: [ "./img/notes/4note.svg" ],
-					notes: [4],
+					notes: function* () {
+						yield* pattern(
+							beat(4).accent()
+						);
+					},
 				},
 				{
 					name: "2",
 					imgs: Array(2).fill("./img/notes/4note.svg"),
-					notes: Array(2).fill(4),
+					notes: function* () {
+						yield* pattern(
+							beat(4).accent(),
+							beat(4)
+						);
+					},
 				},
 				{
 					name: "3",
 					imgs: Array(3).fill("./img/notes/4note.svg"),
-					notes: Array(3).fill(4),
+					notes: function* () {
+						yield* pattern(
+							beat(4).accent(),
+							beat(4),
+							beat(4)
+						);
+					},
 				},
 				{
 					name: "4",
 					imgs: Array(4).fill("./img/notes/4note.svg"),
-					notes: Array(4).fill(4),
+					notes: function* () {
+						yield* pattern(
+							beat(4).accent(),
+							beat(4),
+							beat(4),
+							beat(4)
+						);
+					},
 				},
 				{
 					name: "5",
 					imgs: Array(5).fill("./img/notes/4note.svg"),
-					notes: Array(5).fill(4),
+					notes: function* () {
+						yield* pattern(
+							beat(4).accent(),
+							beat(4),
+							beat(4),
+							beat(4),
+							beat(4)
+						);
+					},
 				},
 				{
 					name: "8x2",
 					imgs: ["./img/notes/8x2notes.svg"],
-					notes: [8, 8],
+					notes: function* () {
+						yield* pattern(
+							beat(8).accent(),
+							beat(8)
+						);
+					},
 				},
 				{
 					name: "Triplet",
 					imgs: ["./img/notes/triplet.svg"],
-					notes: [4*3, 4*3, 4*3],
+					notes: function* () {
+						yield* pattern(
+							beat(4).triplet().accent(),
+							beat(4).triplet(),
+							beat(4).triplet()
+						);
+					},
 				},
 				/*
 				{
@@ -98,79 +171,107 @@ Vue.createApp({
 				{
 					name: "Triplet-1",
 					imgs: ["./img/notes/triplet-1.svg"],
-					notes: [4*3, {len: 4*3, volume: 0.0001}, 4*3],
+					notes: function* () {
+						yield* pattern(
+							beat(4).triplet().accent(),
+							beat(4).triplet().rest(),
+							beat(4).triplet()
+						);
+					},
 				},
 				{
 					name: "16x4",
 					imgs: ["./img/notes/16x4notes.svg"],
-					notes: [16, 16, 16, 16],
+					notes: function* () {
+						yield* pattern(
+							beat(16).accent(),
+							beat(16),
+							beat(16),
+							beat(16)
+						);
+					},
 				},
 				{
 					name: "16x4-2",
 					imgs: ["./img/notes/16x4-2notes.svg"],
-					notes: [16, {len: 16, volume: 0.0001}, {len: 16, volume: 0.0001}, 16],
+					notes: function* () {
+						yield* pattern(
+							beat(16).accent(),
+							beat(16).rest(),
+							beat(16).rest(),
+							beat(16)
+						);
+					},
 				},
 				{
 					name: "Son Clave 3-2",
-					notes: [
-						{ len: 8, volume: 0.5 },
-						{ len: 16, volume: 0.0001 },
-						16,
-						{ len: 8, volume: 0.0001 },
-						8,
+					notes: function* () {
+						yield* pattern(
+							beat(8).soft(),
+							beat(16).rest(),
+							beat(16),
+							beat(8).rest(),
+							beat(8),
 
-						{ len: 8, volume: 0.0001 },
-						8,
-						8,
-						{ len: 8, volume: 0.0001 },
-					]
+							beat(8).rest(),
+							beat(8),
+							beat(8),
+							beat(8).rest()
+						);
+					},
 				},
 				{
 					name: "Son Clave 2-3",
-					notes: [
-						{ len: 8, volume: 0.0001 },
-						8,
-						8,
-						{ len: 8, volume: 0.0001 },
+					notes: function* () {
+						yield* pattern(
+							beat(8).rest(),
+							beat(8),
+							beat(8),
+							beat(8).rest(),
 
-						{ len: 8, volume: 0.5 },
-						{ len: 16, volume: 0.0001 },
-						16,
-						{ len: 8, volume: 0.0001 },
-						8,
-					]
+							beat(8).soft(),
+							beat(16).rest(),
+							beat(16),
+							beat(8).rest(),
+							beat(8)
+						);
+					},
 				},
 				{
 					name: "Rumba Clave 3-2",
-					notes: [
-						{ len: 8, volume: 0.5 },
-						{ len: 16, volume: 0.0001 },
-						16,
-						{ len: 8, volume: 0.0001 },
-						{ len: 16, volume: 0.0001 },
-						16,
+					notes: function* () {
+						yield* pattern(
+							beat(8).soft(),
+							beat(16).rest(),
+							beat(16),
+							beat(8).rest(),
+							beat(16).rest(),
+							beat(16),
 
-						{ len: 8, volume: 0.0001 },
-						8,
-						8,
-						{ len: 8, volume: 0.0001 },
-					]
+							beat(8).rest(),
+							beat(8),
+							beat(8),
+							beat(8).rest()
+						);
+					},
 				},
 				{
 					name: "Rumba Clave 2-3",
-					notes: [
-						{ len: 8, volume: 0.0001 },
-						8,
-						8,
-						{ len: 8, volume: 0.0001 },
+					notes: function* () {
+						yield* pattern(
+							beat(8).rest(),
+							beat(8),
+							beat(8),
+							beat(8).rest(),
 
-						{ len: 8, volume: 0.5 },
-						{ len: 16, volume: 0.0001 },
-						16,
-						{ len: 8, volume: 0.0001 },
-						{ len: 16, volume: 0.0001 },
-						16,
-					]
+							beat(8).soft(),
+							beat(16).rest(),
+							beat(16),
+							beat(8).rest(),
+							beat(16).rest(),
+							beat(16)
+						);
+					},
 				},
 				{
 					name: "1/4 Upbeat Support",
@@ -178,14 +279,18 @@ Vue.createApp({
 						"Snare Drum",
 						"Bass Drum",
 					],
-					notes: function me (n) {
-						const x = !(Math.floor(n / 8) % 2);
-						return {
-							len: 8,
-							volume: x ? 0.5: (n % 2) ? "Snare Drum" : 0.0001,
-							voice: (n % 2) ? "Snare Drum" : "Bass Drum",
-						};
-					}
+					notes: function* () {
+						yield* sequence(n => {
+							const x = !(Math.floor(n / 8) % 2);
+							const isSnare = n % 2;
+							
+							if (x) {
+								return beat(8).soft().voice(isSnare ? "Snare Drum" : "Bass Drum");
+							} else {
+								return isSnare ? beat(8).voice("Snare Drum") : beat(8).rest().voice("Bass Drum");
+							}
+						});
+					},
 				},
 				{
 					name: "1/4 Triplet Upbeat Support",
@@ -194,22 +299,22 @@ Vue.createApp({
 						"Side Stick",
 						"Snare Drum",
 					],
-					notes: function me (n) {
-						const x = !(Math.floor(n / (3*4)) % 2);
-						return {
-							len: 4*3,
-							volume: x ? 0.5 : [
-								0.0001,
-								0.0001,
-								0.5
-							][n % 3],
-							voice: [
-								"Bass Drum",
-								"Side Stick",
-								"Snare Drum",
-							][(n % 3)]
-						};
-					}
+					notes: function* () {
+						yield* sequence(n => {
+							const x = !(Math.floor(n / (3*4)) % 2);
+							const voiceIndex = n % 3;
+							const voiceNames = ["Bass Drum", "Side Stick", "Snare Drum"];
+							const volumes = [0.0001, 0.0001, 0.5];
+							
+							const note = beat(4).triplet().voice(voiceNames[voiceIndex]);
+							
+							if (x) {
+								return note.soft();
+							} else {
+								return volumes[voiceIndex] === 0.0001 ? note.rest() : note.soft();
+							}
+						});
+					},
 				},
 			],
 
@@ -335,6 +440,10 @@ Vue.createApp({
 		},
 		rhythm: function() {
 			this.updateHashParams();
+			// 再生中にリズムが変更された場合、新しいgeneratorを作成
+			if (this.playing && this.rhythmGenerator) {
+				this.rhythmGenerator = this.rhythm.notes();
+			}
 		},
 		volume: function () {
 			this.updateHashParams();
@@ -463,7 +572,7 @@ Vue.createApp({
 			const { player, audioContext, channelMaster } = this;
 			this.playing = true;
 			this.queued = [];
-			this.noteCount = 0;
+			this.rhythmGenerator = this.rhythm.notes();
 
 			audioContext.resume();
 			let startTime = audioContext.currentTime;
@@ -476,55 +585,43 @@ Vue.createApp({
 			this.timerWorker.postMessage({ interval: 20 });
 
 			this.timerWorker.onmessage = async () => {
-				if (!this.rhythm.voices) {
-					const drum = await this.loadVoice(this.voice.src, this.voice.file);
-					const { duration, pitch, volume } = this.voice;
-					const rhythm = this.rhythm.notes;
-					const sec = 4 * 60 / this.bpm;
-
-					while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
-						for (let i = 0, len = rhythm.length; i < len; i++) {
-							const note = rhythm[i];
-							const queue = {
-								volumex: (i == 0) ? 1.0 : 0.5,
-							};
-							if (typeof note === 'number') {
-								queue.length = 1 / note * sec;
-							} else {
-								queue.length = 1 / note.len * sec;
-								if (note.volume) {
-									queue.volumex = note.volume;
-								}
-							}
-							player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
-							if (this.flash) {
-								this.queued.push(startTime);
-								console.log('queued', startTime, queue.length);
-							}
-							startTime += queue.length;
-						}
-					}
-				} else {
-					const voices = new Map();
+				const sec = 4 * 60 / this.bpm;
+				
+				// 必要な音源を事前に読み込み
+				const voices = new Map();
+				if (this.rhythm.voices) {
 					for (let name of this.rhythm.voices) {
 						const voice = this.voices.find(i => i.name === name);
 						voices.set(name, { voice, drum: await this.loadVoice(voice.src, voice.file) });
 					}
-					const sec = 4 * 60 / this.bpm;
-					while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
-						const note = this.rhythm.notes(this.noteCount++);
-						const queue = {
-							length: 1 / note.len * sec,
-							volumex: note.volume
-						};
-						const { duration, pitch, volume } = voices.get(note.voice).voice;
-						const drum = voices.get(note.voice).drum;
-						player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
-						if (this.flash) {
-							this.queued.push(startTime);
-						}
-						startTime += queue.length;
+				}
+				
+				while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
+					const note = this.rhythmGenerator.next().value;
+					const queue = {
+						length: 1 / note.len * sec,
+						volumex: note.volume
+					};
+					
+					// 音源を決定
+					let voice, drum;
+					if (note.voice && voices.has(note.voice)) {
+						// 指定された音源を使用
+						voice = voices.get(note.voice).voice;
+						drum = voices.get(note.voice).drum;
+					} else {
+						// デフォルト音源を使用
+						voice = this.voice;
+						drum = await this.loadVoice(this.voice.src, this.voice.file);
 					}
+					
+					const { duration, pitch, volume } = voice;
+					player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
+					
+					if (this.flash) {
+						this.queued.push(startTime);
+					}
+					startTime += queue.length;
 				}
 			};
 
