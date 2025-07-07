@@ -789,48 +789,57 @@ Vue.createApp({
 			const value = data[2];
 			console.log(`cc: ${cc}, value: ${value}`);
 
-			if (cc === +this.midiSettings.ccStartStop) {
-				if (this.playing) {
-					this.stop();
-				} else {
-					this.start();
+			// MIDIハンドラーマップ - 動的に構築して可読性と保守性を向上
+			const midiHandlers = {
+				[+this.midiSettings.ccStartStop]: () => {
+					if (this.playing) {
+						this.stop();
+					} else {
+						this.start();
+					}
+				},
+				[+this.midiSettings.ccTapTempo]: () => {
+					this.tapTempoTap();
+				},
+				[+this.midiSettings.ccSetTempoMSB]: (value) => {
+					this.bpm = (this.bpm & 0x7F) | (value << 7);
+				},
+				[+this.midiSettings.ccSetTempoLSB]: (value) => {
+					this.bpm = (this.bpm & 0x3F80) | value;
+				},
+				[+this.midiSettings.ccSetTempoRelative]: (value) => {
+					this.bpm += value - 64;
+				},
+				[+this.midiSettings.ccIncrement]: () => {
+					this.bpm += 1;
+				},
+				[+this.midiSettings.ccDecrement]: () => {
+					this.bpm -= 1;
+				},
+				[+this.midiSettings.ccIncrement5]: () => {
+					this.bpm += 5;
+				},
+				[+this.midiSettings.ccDecrement5]: () => {
+					this.bpm -= 5;
+				},
+				[+this.midiSettings.ccIncrement10]: () => {
+					this.bpm += 10;
+				},
+				[+this.midiSettings.ccDecrement10]: () => {
+					this.bpm -= 10;
+				},
+				[+this.midiSettings.ccSetTempoHalf]: () => {
+					this.bpm = Math.round(+this.bpm / 2);
+				},
+				[+this.midiSettings.ccSetTempoDouble]: () => {
+					this.bpm = Math.round(+this.bpm * 2);
 				}
-			} else
-			if (cc === +this.midiSettings.ccTapTempo) {
-				this.tapTempoTap();
-			} else
-			if (cc === +this.midiSettings.ccSetTempoMSB) {
-				this.bpm = (this.bpm & 0x7F) | (value << 7);
-			} else
-			if (cc === +this.midiSettings.ccSetTempoLSB) {
-				this.bpm = (this.bpm & 0x3F80) | value;
-			} else
-			if (cc === +this.midiSettings.ccSetTempoRelative) {
-				this.bpm += value - 64;
-			} else
-			if (cc === +this.midiSettings.ccIncrement) {
-				this.bpm += 1;
-			} else
-			if (cc === +this.midiSettings.ccDecrement) {
-				this.bpm -= 1;
-			} else
-			if (cc === +this.midiSettings.ccIncrement5) {
-				this.bpm += 5;
-			} else
-			if (cc === +this.midiSettings.ccDecrement5) {
-				this.bpm -= 5;
-			} else
-			if (cc === +this.midiSettings.ccIncrement10) {
-				this.bpm += 10;
-			} else
-			if (cc === +this.midiSettings.ccDecrement10) {
-				this.bpm -= 10;
-			} else
-			if (cc === +this.midiSettings.ccSetTempoHalf) {
-				this.bpm = Math.round(+this.bpm / 2);
-			} else
-			if (cc === +this.midiSettings.ccSetTempoDouble) {
-				this.bpm = Math.round(+this.bpm * 2);
+			};
+
+			// ハンドラーが存在する場合のみ実行
+			const handler = midiHandlers[cc];
+			if (handler) {
+				handler(value);
 			}
 		},
 

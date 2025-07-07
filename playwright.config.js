@@ -21,6 +21,11 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      name: 'midi',
+      testMatch: '**/midi.spec.js',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
       name: 'timing',
       testMatch: '**/timing.spec.js',
       use: { ...devices['Desktop Chrome'] },

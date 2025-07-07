@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "Web-based metronome application",
   "scripts": {
-    "test": "CI=1 playwright test --project=ui --project=timing",
+    "test": "CI=1 playwright test --project=ui --project=midi --project=timing",
     "test:all": "CI=1 playwright test",
     "test:ui": "CI=1 playwright test --project=ui",
+    "test:midi": "CI=1 playwright test --project=midi",
     "test:timing": "CI=1 playwright test --project=timing",
     "test:headed": "playwright test --headed",
     "test:ui-headed": "playwright test --project=ui --headed",
