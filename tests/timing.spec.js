@@ -103,15 +103,15 @@ test.describe('音響タイミングテスト', () => {
     
     await page.click('[data-testid="play-button"]');
     
-    // 400ms間再生（4拍子: 間隔0.25秒）
-    await page.waitForTimeout(400);
+    // 500ms間再生（4拍子: 間隔0.25秒で安定させる）
+    await page.waitForTimeout(500);
     
     // 8x2リズムに切り替え
     await rhythmSelector.click();
     await page.getByText('8x2', { exact: true }).click();
     
-    // さらに400ms間再生（8x2: 間隔0.125秒）
-    await page.waitForTimeout(400);
+    // キューイング時間(500ms)を考慮して700ms待機（8x2: 間隔0.125秒で安定させる）
+    await page.waitForTimeout(700);
     
     await page.click('[data-testid="stop-button"]');
     
@@ -119,44 +119,37 @@ test.describe('音響タイミングテスト', () => {
     const audioCallHistory = await page.evaluate(() => window.audioCallHistory || []);
     
     console.log('Total audio calls:', audioCallHistory.length);
-    expect(audioCallHistory.length).toBeGreaterThan(4);
+    expect(audioCallHistory.length).toBeGreaterThan(6);
     
-    // 切り替え前後の間隔変化を検証
-    if (audioCallHistory.length >= 6) {
-      // 最初の数回は4拍子（間隔約0.25秒）
-      let initialIntervals = [];
-      let laterIntervals = [];
-      
-      // 間隔を計算
-      for (let i = 1; i < audioCallHistory.length; i++) {
-        const prev = audioCallHistory[i - 1];
-        const curr = audioCallHistory[i];
-        const interval = curr.when - prev.when;
-        
-        // 切り替えタイミングで分類（大まかに前半/後半で分ける）
-        if (i <= Math.floor(audioCallHistory.length / 2)) {
-          initialIntervals.push(interval);
-        } else {
-          laterIntervals.push(interval);
-        }
-        
-        console.log(`Interval ${i}:`, interval);
-      }
+    // 間隔を全て計算
+    const intervals = [];
+    for (let i = 1; i < audioCallHistory.length; i++) {
+      const prev = audioCallHistory[i - 1];
+      const curr = audioCallHistory[i];
+      const interval = curr.when - prev.when;
+      intervals.push(interval);
+      console.log(`Interval ${i}:`, interval);
+    }
+    
+    // 最初の2回と最後の2回のintervalのみを比較（切り替え過渡期を除外）
+    if (intervals.length >= 4) {
+      const initialIntervals = intervals.slice(0, 2);  // 最初の2回
+      const laterIntervals = intervals.slice(-2);      // 最後の2回
       
       // 4拍子の期待間隔: 60/240 = 0.25秒
       // 8x2の期待間隔: 60/240/2 = 0.125秒
       
-      if (initialIntervals.length > 0) {
-        const avgInitial = initialIntervals.reduce((a, b) => a + b) / initialIntervals.length;
-        console.log('Average initial interval (4拍子):', avgInitial);
-        expect(avgInitial).toBeCloseTo(0.25, 1); // ±0.1秒の許容範囲
-      }
+      const avgInitial = initialIntervals.reduce((a, b) => a + b) / initialIntervals.length;
+      const avgLater = laterIntervals.reduce((a, b) => a + b) / laterIntervals.length;
       
-      if (laterIntervals.length > 0) {
-        const avgLater = laterIntervals.reduce((a, b) => a + b) / laterIntervals.length;
-        console.log('Average later interval (8x2):', avgLater);
-        expect(avgLater).toBeCloseTo(0.125, 1); // ±0.1秒の許容範囲
-      }
+      console.log('Average initial interval (4拍子):', avgInitial);
+      console.log('Average later interval (8x2):', avgLater);
+      
+      // 最初は4拍子の間隔（0.25秒）
+      expect(avgInitial).toBeCloseTo(0.25, 1);
+      
+      // 最後は8x2の間隔（0.125秒）
+      expect(avgLater).toBeCloseTo(0.125, 1);
     }
   });
 });

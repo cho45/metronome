@@ -569,15 +569,26 @@ Vue.createApp({
 
 	methods: {
 		start: async function () {
-			const { player, audioContext, channelMaster } = this;
+			this.initializePlayback();
+			this.setupWorkerScheduler();
+			if (this.flash) {
+				this.setupFlashAnimation();
+			}
+		},
+
+		initializePlayback: function () {
+			const { audioContext } = this;
 			this.playing = true;
 			this.queued = [];
 			this.rhythmGenerator = this.rhythm.notes();
-
 			audioContext.resume();
+		},
+
+		setupWorkerScheduler: function () {
+			const { player, audioContext, channelMaster } = this;
 			let startTime = audioContext.currentTime;
 
-			// Workerを作成してスケジュールを管理
+			// 既存Workerを終了してスケジュール管理用Workerを作成
 			if (this.timerWorker) {
 				this.timerWorker.terminate();
 			}
@@ -624,31 +635,33 @@ Vue.createApp({
 					startTime += queue.length;
 				}
 			};
+		},
 
-			if (this.flash) {
-				let lastFlash = performance.now();
-				const updateFlash = () => {
-					if (!this.playing) return;
-					let flash = false;
-					while (this.queued.length && this.queued[0] <= audioContext.currentTime) {
-						this.queued.shift();
-						flash = true;
+		setupFlashAnimation: function () {
+			const { audioContext } = this;
+			let lastFlash = performance.now();
+			
+			const updateFlash = () => {
+				if (!this.playing) return;
+				let flash = false;
+				while (this.queued.length && this.queued[0] <= audioContext.currentTime) {
+					this.queued.shift();
+					flash = true;
+				}
+
+				if (flash) {
+					const interval = performance.now() - lastFlash;
+					if (interval > 150) {
+						console.log({ interval });
+						document.body.className = "flash";
+						window.navigator.vibrate(100);
 					}
+					lastFlash = performance.now();
+				}
 
-					if (flash) {
-						const interval = performance.now() - lastFlash;
-						if (interval > 150) {
-							console.log({ interval });
-							document.body.className = "flash";
-							window.navigator.vibrate(100);
-						}
-						lastFlash = performance.now();
-					}
-
-					requestAnimationFrame(updateFlash);
-				};
 				requestAnimationFrame(updateFlash);
-			}
+			};
+			requestAnimationFrame(updateFlash);
 		},
 
 		stop: function () {
