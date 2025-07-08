@@ -86,6 +86,57 @@
 				}
 			}
 
+			/* メトロノームスタイル */
+			.pendulum-container {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				max-height: 90vh;
+				display: flex;
+				justify-content: center;
+				align-items: flex-end;
+				pointer-events: none;
+				opacity: 1;
+				transition: opacity 0.3s ease;
+				z-index: 10;
+			}
+
+			.pendulum-container:not(.visible) {
+				opacity: 0;
+			}
+
+			.pendulum-axis {
+				position: relative;
+				width: 30px;
+				height: 30px;
+				background: #333;
+				border-radius: 50%;
+				box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+			}
+
+			.pendulum-rod {
+				position: absolute;
+				bottom: 15px;
+				left: 50%;
+				width: 3px;
+				height: 90%;
+				background: linear-gradient(to top, #666, #333);
+				transform-origin: bottom center;
+				transform: translateX(-50%) rotate(0deg);
+				border-radius: 1.5px;
+				box-shadow: 0 0 10px rgba(0,0,0,0.3);
+			}
+
+			/* アクセシビリティ対応 */
+			@media (prefers-reduced-motion: reduce) {
+				.pendulum-rod {
+					animation: none;
+					transform: translateX(-50%) rotate(0deg);
+				}
+			}
+
 
 			.keyboard-shortcut {
 				display: none;
@@ -117,7 +168,13 @@
 				</v-navigation-drawer -->
 
 				<v-main style="width: 500px; margin: auto;">
-					<v-container ref="container">
+					<v-container ref="container" style="position: relative;">
+						<!-- メトロノームアニメーション -->
+						<div class="pendulum-container" :class="{ visible: pendulum.enabled }" data-testid="pendulum-container">
+							<div class="pendulum-rod" ref="pendulumRod"></div>
+							<div class="pendulum-axis"></div>
+						</div>
+
 						<div class="d-flex">
 							<div class="bpm">
 								<v-text-field style="width: 9em" ref="bpm" label="Tempo" v-model="bpm" type="number" suffix="bpm" variant="plain" hint="tempo in bpm=1/4" prepend-icon="mdi-metronome" data-testid="bpm-input"></v-text-field>
@@ -218,7 +275,10 @@
 							></v-select>
 
 						<div style="text-align: right">
-							<v-btn @click="midiDialog = true" prepend-icon="mdi-midi" :variant="midiConnected ? 'tonal' : 'flat'" density="compact" color="blue-grey">
+							<v-btn @click="pendulum.enabled = !pendulum.enabled" prepend-icon="mdi-metronome" :variant="pendulum.enabled ? 'tonal' : 'flat'" density="compact" color="blue-grey" data-testid="pendulum-toggle">
+								Pendulum
+							</v-btn>
+							<v-btn @click="midiDialog = true" prepend-icon="mdi-midi" :variant="midiConnected ? 'tonal' : 'flat'" density="compact" color="blue-grey" class="ml-2">
 								MIDI
 							</v-btn>
 						</div>

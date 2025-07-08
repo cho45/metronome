@@ -84,6 +84,10 @@ Vue.createApp({
 			midiSettings: DEFAULT_MIDI_SETTINGS,
 			midiConnected: false,
 
+			pendulum: {
+				enabled: false,
+			},
+
 			rhythm: {},
 			rhythms: [
 				{
@@ -455,6 +459,12 @@ Vue.createApp({
 			},
 			deep: true
 		},
+		pendulum: {
+			handler: function () {
+				this.updateHashParams();
+			},
+			deep: true
+		},
 	},
 
 	mounted() {
@@ -574,6 +584,11 @@ Vue.createApp({
 			if (this.flash) {
 				this.setupFlashAnimation();
 			}
+			
+			console.log(this.pendulum.enabled)
+			if (this.pendulum.enabled) {
+				this.setupPendulumAnimation();
+			}
 		},
 
 		initializePlayback: function () {
@@ -629,7 +644,7 @@ Vue.createApp({
 					const { duration, pitch, volume } = voice;
 					player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 					
-					if (this.flash) {
+					if (this.flash || this.pendulum.enabled) {
 						this.queued.push(startTime);
 					}
 					startTime += queue.length;
@@ -672,6 +687,13 @@ Vue.createApp({
 			}
 			player.cancelQueue(audioContext);
 			this.playing = false;
+			
+			// 針を中央に戻す
+			this.$nextTick(() => {
+				if (this.$refs.pendulumRod) {
+					this.$refs.pendulumRod.style.transform = 'translateX(-50%) rotate(0deg)';
+				}
+			});
 		},
 
 		tapTempoTap: function () {
@@ -749,6 +771,10 @@ Vue.createApp({
 				this.flash = true;
 			}
 
+			if (params.has("pendulum")) {
+				this.pendulum.enabled = true;
+			}
+
 			if (params.has("midi")) {
 				this.midiDialog = true;
 			}
@@ -760,7 +786,52 @@ Vue.createApp({
 			params.set("voice", this.voice.name);
 			params.set("rhythm", this.rhythm.name);
 			params.set("volume", this.volume);
+			if (this.pendulum.enabled) {
+				params.set("pendulum", "true");
+			} else {
+				params.delete("pendulum");
+			}
 			history.replaceState(null, "", "#" + params.toString());
+		},
+
+		setupPendulumAnimation: function () {
+			const { audioContext } = this;
+			let referenceTime = audioContext.currentTime;
+			
+			const updatePendulum = () => {
+				if (!this.playing) return;
+				
+				if (this.$refs.pendulumRod) {
+					const currentTime = audioContext.currentTime;
+					const period = 60 / this.bpm; // 1拍の時間（秒）
+					
+
+					const currentElapsed = currentTime - referenceTime;
+					const phase = Math.sin(Math.PI * currentElapsed / period);
+					
+					/*
+					// 音のタイミングで基準時刻を更新（針が中央を通過）
+					if (this.queued.length && this.queued[0] <= currentTime) {
+						this.queued.shift();
+					}
+					if (this.queued.length > 0) {
+						const soundTime = this.queued[0];
+						// 2. 位相を見て補正方向を決める
+						if (phase < 0) {
+							referenceTime = soundTime;
+						} else {
+							referenceTime = soundTime - period;
+						}
+					}
+						*/
+					
+					const angle = phase * 20; // 2拍で1往復（1拍で中央を1回通過）
+					this.$refs.pendulumRod.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+				}
+				
+				requestAnimationFrame(updatePendulum);
+			};
+			requestAnimationFrame(updatePendulum);
 		},
 
 		loadMidiSettings: async function () {
