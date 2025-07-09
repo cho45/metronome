@@ -841,6 +841,11 @@ Vue.createApp({
 							adjustEnd = this.queued[1];
 							adjustDuration = adjustEnd - adjustStart;
 							adjustTo = Math.ceil(pendulumPhase);
+							if (adjustDuration > period) {
+								const adjustCount = Math.floor(adjustDuration / period);
+								adjustEnd = adjustEnd - (adjustCount * period);
+								adjustDuration = adjustEnd - adjustStart;
+							}
 						}
 						this.queued.shift();
 					}
