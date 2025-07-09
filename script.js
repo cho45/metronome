@@ -818,37 +818,34 @@ Vue.createApp({
 
 		setupPendulumAnimation: function () {
 			const { audioContext } = this;
-			let referenceTime = audioContext.currentTime;
-			
+			let pendulumPhase = 0;
+			let pendulumLastTime = audioContext.currentTime;
+			let period = 60 / this.bpm;
+
 			const updatePendulum = () => {
 				if (!this.playing) return;
-				
 				if (this.$refs.pendulumRod) {
-					const currentTime = audioContext.currentTime;
-					const period = 60 / this.bpm; // 1拍の時間（秒）
-					
-
-					const currentElapsed = currentTime - referenceTime;
-					const phase = Math.sin(Math.PI * currentElapsed / period);
-					const angle = phase * 20; // 2拍で1往復（1拍で中央を1回通過）
-					
-					// 音のタイミングで基準時刻を更新（針が中央を通過）
-					if (this.queued.length && this.queued[0] <= currentTime) {
+					while (this.queued.length > 1) {
+						let newPeriod = this.queued[1] - this.queued[0];
+						if (Math.abs(newPeriod - period) > Number.EPSILON) {
+							console.log('changed', newPeriod);
+							period = newPeriod;
+						}
 						this.queued.shift();
 					}
-					if (this.queued.length > 0) {
-						const soundTime = this.queued[0];
-						// 2. 位相を見て補正方向を決める
-						if (phase < 0) {
-							referenceTime = soundTime;
-						} else {
-							referenceTime = soundTime - period;
-						}
-					}
-					
+
+					const currentTime = audioContext.currentTime;
+					// 前回からの経過時間
+					const dt = currentTime - pendulumLastTime;
+					pendulumLastTime = currentTime;
+					// 累積位相を加算
+					pendulumPhase += dt / period;
+					// 0～2の範囲で正規化（1で中央通過、2で1往復）
+					if (pendulumPhase > 2) pendulumPhase -= 2;
+					const phase = Math.sin(Math.PI * pendulumPhase);
+					const angle = phase * 20;
 					this.$refs.pendulumRod.style.transform = `translateX(-50%) rotate(${angle}deg)`;
 				}
-				
 				requestAnimationFrame(updatePendulum);
 			};
 			requestAnimationFrame(updatePendulum);
