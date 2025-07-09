@@ -821,6 +821,12 @@ Vue.createApp({
 			let pendulumPhase = 0;
 			let pendulumLastTime = audioContext.currentTime;
 			let period = 60 / this.bpm;
+			let isAdjusting = false;
+			let adjustFrom = 0;
+			let adjustTo = 0;
+			let adjustStart = 0;
+			let adjustEnd = 0;
+			let adjustDuration = 0;
 
 			const updatePendulum = () => {
 				if (!this.playing) return;
@@ -828,19 +834,32 @@ Vue.createApp({
 					while (this.queued.length > 1) {
 						let newPeriod = this.queued[1] - this.queued[0];
 						if (Math.abs(newPeriod - period) > Number.EPSILON) {
-							console.log('changed', newPeriod);
 							period = newPeriod;
+							isAdjusting = true;
+							adjustFrom = pendulumPhase;
+							adjustStart = audioContext.currentTime;
+							adjustEnd = this.queued[1];
+							adjustDuration = adjustEnd - adjustStart;
+							adjustTo = Math.ceil(pendulumPhase);
 						}
 						this.queued.shift();
 					}
 
 					const currentTime = audioContext.currentTime;
-					// 前回からの経過時間
 					const dt = currentTime - pendulumLastTime;
 					pendulumLastTime = currentTime;
-					// 累積位相を加算
-					pendulumPhase += dt / period;
-					// 0～2の範囲で正規化（1で中央通過、2で1往復）
+
+					if (isAdjusting) {
+						const t = (currentTime - adjustStart) / adjustDuration;
+						if (t >= 1) {
+							pendulumPhase = adjustTo;
+							isAdjusting = false;
+						} else {
+							pendulumPhase = adjustFrom + (adjustTo - adjustFrom) * t;
+						}
+					} else {
+						pendulumPhase += dt / period;
+					}
 					if (pendulumPhase > 2) pendulumPhase -= 2;
 					const phase = Math.sin(Math.PI * pendulumPhase);
 					const angle = phase * 20;
