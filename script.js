@@ -89,6 +89,7 @@ Vue.createApp({
 			},
 
 			rhythm: {},
+			pendingRhythmGenerator: null, // リズム切り替え待機用
 			rhythms: [
 				{
 					name: "1",
@@ -430,7 +431,7 @@ Vue.createApp({
 	},
 
 	watch: {
-		bpm: function () {
+		bpm: function (newBpm, oldBpm) {
 			if (this.bpm >= 1000) {
 				this.bpm = 999;
 			}
@@ -444,8 +445,11 @@ Vue.createApp({
 		},
 		rhythm: function() {
 			this.updateHashParams();
-			// 再生中にリズムが変更された場合、新しいgeneratorを作成
-			if (this.playing && this.rhythmGenerator) {
+			if (this.playing) {
+				// 再生中は次の4分音符境界まで待機
+				this.pendingRhythmGenerator = this.rhythm.notes();
+			} else {
+				// 停止中は即座に切り替え
 				this.rhythmGenerator = this.rhythm.notes();
 			}
 		},
@@ -602,6 +606,7 @@ Vue.createApp({
 		setupWorkerScheduler: function () {
 			const { player, audioContext, channelMaster } = this;
 			let startTime = audioContext.currentTime;
+			let quarterTime = audioContext.currentTime; // 4分音符境界管理用
 
 			// 既存Workerを終了してスケジュール管理用Workerを作成
 			if (this.timerWorker) {
@@ -612,6 +617,23 @@ Vue.createApp({
 
 			this.timerWorker.onmessage = async () => {
 				const sec = 4 * 60 / this.bpm;
+				const quarterPeriod = 60 / this.bpm; // 4分音符の間隔
+				
+				// 4分音符境界のチェックとリズム切り替え
+				while (quarterTime <= audioContext.currentTime + QUEUE_PREPARING_TIME) {
+					if (this.pendingRhythmGenerator) {
+						// 境界でリズム切り替え実行
+						this.rhythmGenerator = this.pendingRhythmGenerator;
+						this.pendingRhythmGenerator = null;
+					}
+					
+					// 針用のキューイング
+					if (this.pendulum.enabled) {
+						this.queued.push(quarterTime);
+					}
+					
+					quarterTime += quarterPeriod;
+				}
 				
 				// 必要な音源を事前に読み込み
 				const voices = new Map();
@@ -644,7 +666,7 @@ Vue.createApp({
 					const { duration, pitch, volume } = voice;
 					player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 					
-					if (this.flash || this.pendulum.enabled) {
+					if (this.flash) {
 						this.queued.push(startTime);
 					}
 					startTime += queue.length;
@@ -808,8 +830,8 @@ Vue.createApp({
 
 					const currentElapsed = currentTime - referenceTime;
 					const phase = Math.sin(Math.PI * currentElapsed / period);
+					const angle = phase * 20; // 2拍で1往復（1拍で中央を1回通過）
 					
-					/*
 					// 音のタイミングで基準時刻を更新（針が中央を通過）
 					if (this.queued.length && this.queued[0] <= currentTime) {
 						this.queued.shift();
@@ -823,9 +845,7 @@ Vue.createApp({
 							referenceTime = soundTime - period;
 						}
 					}
-						*/
 					
-					const angle = phase * 20; // 2拍で1往復（1拍で中央を1回通過）
 					this.$refs.pendulumRod.style.transform = `translateX(-50%) rotate(${angle}deg)`;
 				}
 				

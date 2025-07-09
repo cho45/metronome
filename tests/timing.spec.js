@@ -152,4 +152,94 @@ test.describe('音響タイミングテスト', () => {
       expect(avgLater).toBeCloseTo(0.125, 1);
     }
   });
+
+  test('16分音符から4分音符への切り替えテスト', async ({ page }) => {
+    // BPM240で固定（4分音符間隔は0.25秒、16分音符間隔は0.0625秒）
+    await page.fill('[data-testid="bpm-input"] input', '240');
+    
+    // 履歴をクリア
+    await page.evaluate(() => { window.audioCallHistory = []; });
+    
+    // 16x4パターンで再生開始
+    const rhythmSelector = page.locator('[data-testid="rhythm-selector"]');
+    await rhythmSelector.click();
+    await page.getByText('16x4', { exact: true }).click();
+    
+    await page.click('[data-testid="play-button"]');
+    
+    // 16分音符が1.5秒間鳴るまで待機（約12個の16分音符）
+    await page.waitForTimeout(1500);
+    
+    // 4分音符パターンに切り替え
+    await rhythmSelector.click();
+    await page.getByText('1', { exact: true }).click();
+    
+    // 切り替え後の音響を確認するため1.5秒待機
+    await page.waitForTimeout(1500);
+    
+    await page.click('[data-testid="stop-button"]');
+    
+    // 音声呼び出し履歴を分析
+    const audioCallHistory = await page.evaluate(() => window.audioCallHistory || []);
+    
+    console.log('Total audio calls:', audioCallHistory.length);
+    expect(audioCallHistory.length).toBeGreaterThan(8);
+    
+    // 期待される間隔
+    const quarterBeatInterval = 60 / 240; // 0.25秒
+    const sixteenthNoteInterval = quarterBeatInterval / 4; // 0.0625秒
+    
+    console.log('Audio call timings:');
+    for (let i = 0; i < audioCallHistory.length; i++) {
+      console.log(`[${i}] when: ${audioCallHistory[i].when}`);
+    }
+    
+    // 間隔の変化を分析
+    const intervals = [];
+    for (let i = 1; i < audioCallHistory.length; i++) {
+      const prev = audioCallHistory[i - 1];
+      const curr = audioCallHistory[i];
+      const interval = curr.when - prev.when;
+      intervals.push(interval);
+      console.log(`Interval ${i-1}-${i}: ${interval}`);
+    }
+    
+    // 16分音符（0.0625秒間隔）から4分音符（0.25秒間隔）への切り替え検出
+    let sixteenthNotes = [];
+    let quarterNotes = [];
+    
+    for (let i = 0; i < intervals.length; i++) {
+      if (Math.abs(intervals[i] - sixteenthNoteInterval) < 0.01) {
+        sixteenthNotes.push(intervals[i]);
+      } else if (Math.abs(intervals[i] - quarterBeatInterval) < 0.02) {
+        quarterNotes.push(intervals[i]);
+      }
+    }
+    
+    console.log('Sixteenth note intervals:', sixteenthNotes);
+    console.log('Quarter note intervals:', quarterNotes);
+    
+    // 16分音符の間隔が検出されていること
+    expect(sixteenthNotes.length).toBeGreaterThan(0);
+    
+    // 4分音符の間隔が検出されていること
+    expect(quarterNotes.length).toBeGreaterThan(0);
+    
+    // 16分音符が4の倍数回鳴っていることを確認
+    if (sixteenthNotes.length > 0) {
+      console.log('Number of sixteenth notes:', sixteenthNotes.length);
+      // 4分音符境界で切り替わるので、16分音符は4の倍数回鳴る
+      expect(sixteenthNotes.length % 4).toBe(0);
+      
+      // 平均間隔の確認
+      const avgSixteenth = sixteenthNotes.reduce((a, b) => a + b) / sixteenthNotes.length;
+      expect(avgSixteenth).toBeCloseTo(sixteenthNoteInterval, 1);
+    }
+    
+    if (quarterNotes.length > 0) {
+      // 4分音符の平均間隔が0.25秒に近いこと
+      const avgQuarter = quarterNotes.reduce((a, b) => a + b) / quarterNotes.length;
+      expect(avgQuarter).toBeCloseTo(quarterBeatInterval, 1);
+    }
+  });
 });
