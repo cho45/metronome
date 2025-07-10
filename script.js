@@ -824,8 +824,9 @@ Vue.createApp({
 			const updatePendulum = () => {
 				if (!this.playing) return;
 
-				// 1. ロジッククラスから角度を計算
-				const angle = this.pendulumLogic.update(this.audioContext.currentTime, this.queued);
+				// 1. ロジッククラスから位相を取得し、角度を計算
+				const sinPhase = this.pendulumLogic.update(this.audioContext.currentTime, this.queued);
+				const angle = sinPhase * 20;
 				
 				// 2. 計算結果をDOMに適用
 				if (this.$refs.pendulumRod) {

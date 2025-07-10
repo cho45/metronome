@@ -2,7 +2,7 @@ export class PendulumLogic {
 	constructor(initialBpm) {
 		this.phase = 0;
 		this.period = 60 / initialBpm;
-		this.lastTime = 0;
+		this.lastTime = -1;
 
 		this.isAdjusting = false;
 		this.adjustFrom = 0;
@@ -13,10 +13,10 @@ export class PendulumLogic {
 	}
 
 	/**
-	 * 現在時刻とビートキューを基に、振り子の次の角度を計算して返す
+	 * 現在時刻とビートキューを基に、振り子の位相を計算して返す
 	 * @param {number} currentTime - 現在のオーディオコンテキスト時刻
 	 * @param {number[]} queued - 音声再生がスケジュールされた時刻の配列
-	 * @returns {number} - CSS transform用の角度(deg)
+	 * @returns {number} - sin関数値（-1から1の範囲）
 	 */
 	update(currentTime, queued) {
 		if (this.lastTime === -1) {
@@ -60,6 +60,6 @@ export class PendulumLogic {
 
 		if (this.phase > 2) this.phase -= 2;
 		const sinPhase = Math.sin(Math.PI * this.phase);
-		return sinPhase * 20; // 角度を返す
+		return sinPhase;
 	}
 }

@@ -28,19 +28,34 @@ Vue.js 3とVuetify 3で構築されたWeb版メトロノームアプリケーシ
 - **無音表現**: 完全な無音（0）ではなく0.0001を使用してブラウザの「音を出していますよ」マークの点滅を防止
 
 ### コアファイル
-- `script.js`: 全アプリケーションロジックを含む単一Vue.jsコンポーネント（19KB）
+- `script.js`: 全アプリケーションロジックを含む単一Vue.jsコンポーネント（907行）
 - `index.html`: メインエントリーポイント、CDNからVue.jsとVuetifyを読み込み、テスト用`data-testid`属性含む
 - `manifest.webmanifest`: PWA設定
 - `/lib/webaudiofont/`: 音声合成ライブラリ
 - `/lib/webaudiofontdata/sound/`: ドラム音源サンプル
-- `tests/`: Playwrightテストファイル
-- `playwright.config.js`: テスト設定（UIとタイミングテストの分離）
+- `tests/`: Playwrightテストファイル（UI、MIDI、タイミングの3分割）
+- `playwright.config.js`: テスト設定（UI、MIDI、タイミングテストの分離）
 
 ### 状態管理
 - Vue.jsリアクティブデータでUI状態管理
 - URLハッシュで設定永続化（`#bpm=120&rhythm=quarter&voice=snare`）
 - localStorageでMIDIコントローラー設定
 - 外部状態管理ライブラリは使用せず
+
+## コード設計の特徴
+
+### 最近のリファクタリング改善
+- **`processMidiMessage()`**: 長大なif-elseチェーンからハンドラーマップパターンに改善（保守性・可読性向上）
+- **`start()`メソッド分割**: 責任別に3メソッドに分割
+  - `initializePlayback()`: 初期状態設定
+  - `setupWorkerScheduler()`: WebWorker + 音声スケジューリング
+  - `setupFlashAnimation()`: フラッシュアニメーション
+- **包括的テストカバレッジ**: 全MIDI機能とタイミング精度がテストで検証済み
+
+### メソッド設計原則
+- **単一責任原則**: 各メソッドが明確な1つの責任を持つ
+- **可読性重視**: 複雑なロジックを理解しやすい単位に分割
+- **テスタビリティ**: ダイレクトメソッドテストによる確実な動作保証
 
 ## MIDI連携
 
@@ -73,11 +88,14 @@ npm run serve
 
 ### テスト実行
 ```bash
-# 全テスト（UIテスト + 音響タイミングテスト）
+# 全テスト（UI + MIDI + タイミングテスト）
 npm test
 
 # UIテストのみ（高速、5-10秒）
 npm run test:ui
+
+# MIDIテストのみ（高速、5-10秒）
+npm run test:midi
 
 # 音響タイミングテストのみ（時間がかかる、15-25秒）
 npm run test:timing
@@ -92,10 +110,13 @@ npm run test:ui -- --grep "タップテンポ"
 
 ### テスト設計アーキテクチャ
 - **UIテスト** (`tests/ui.spec.js`): ボタンクリック、フォーム入力、キーボードショートカット、URLハッシュ復元
+- **MIDIテスト** (`tests/midi.spec.js`): `processMidiMessage()`メソッドの直接テスト、全MIDIコントロール機能の検証
 - **音響タイミングテスト** (`tests/timing.spec.js`): WebAudioFontの`queueWaveTable`監視による実際の音響タイミング精度検証
 - **WebAudioFont監視**: 実際の音出力なしで`AudioContext.when`値による高精度タイミング検証（±0.01秒精度）
 - **ブラウザ内タイマー**: Playwrightのタイミングに依存しない`setTimeout`によるタップテンポ精度テスト
 - **URLハッシュテスト**: `about:blank`経由でページリロードを強制し、`loadHashParams()`実行を確実にする
+- **ダイレクトメソッドテスト**: Vueインスタンスへの直接アクセスによるMIDI機能の単体テスト
+- **安定化されたタイミングテスト**: キューイング時間(500ms)を考慮し、最初と最後のintervalのみ比較することで過渡期データを除外
 
 ### 音響問題のデバッグ
 - `audioContext.state`を確認 - 開始にユーザーインタラクションが必要な場合があります
