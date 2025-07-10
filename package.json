@@ -1,6 +1,7 @@
 {
   "name": "metronome",
   "version": "1.0.0",
+  "type": "module",
   "description": "Web-based metronome application",
   "scripts": {
     "test": "CI=1 playwright test --project=ui --project=midi --project=timing",

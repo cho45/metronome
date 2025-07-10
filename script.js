@@ -1,3 +1,5 @@
+import { PendulumLogic } from './utils.js';
+
 const QUEUE_PREPARING_TIME = 0.5;
 
 const DEFAULT_MIDI_SETTINGS = {
@@ -87,6 +89,7 @@ Vue.createApp({
 			pendulum: {
 				enabled: false,
 			},
+			pendulumLogic: null,
 
 			rhythm: {},
 			pendingRhythmGenerator: null, // リズム切り替え待機用
@@ -817,59 +820,23 @@ Vue.createApp({
 		},
 
 		setupPendulumAnimation: function () {
-			const { audioContext } = this;
-			let pendulumPhase = 0;
-			let pendulumLastTime = audioContext.currentTime;
-			let period = 60 / this.bpm;
-			let isAdjusting = false;
-			let adjustFrom = 0;
-			let adjustTo = 0;
-			let adjustStart = 0;
-			let adjustEnd = 0;
-			let adjustDuration = 0;
-
+			this.pendulumLogic = new PendulumLogic(this.bpm);
 			const updatePendulum = () => {
 				if (!this.playing) return;
+
+				// 1. ロジッククラスから角度を計算
+				const angle = this.pendulumLogic.update(this.audioContext.currentTime, this.queued);
+				
+				// 2. 計算結果をDOMに適用
 				if (this.$refs.pendulumRod) {
-					while (this.queued.length > 1) {
-						let newPeriod = this.queued[1] - this.queued[0];
-						if (Math.abs(newPeriod - period) > Number.EPSILON) {
-							period = newPeriod;
-							isAdjusting = true;
-							adjustFrom = pendulumPhase;
-							adjustStart = audioContext.currentTime;
-							adjustEnd = this.queued[1];
-							adjustDuration = adjustEnd - adjustStart;
-							adjustTo = Math.ceil(pendulumPhase);
-							if (adjustDuration > period) {
-								const adjustCount = Math.floor(adjustDuration / period);
-								adjustEnd = adjustEnd - (adjustCount * period);
-								adjustDuration = adjustEnd - adjustStart;
-							}
-						}
-						this.queued.shift();
-					}
-
-					const currentTime = audioContext.currentTime;
-					const dt = currentTime - pendulumLastTime;
-					pendulumLastTime = currentTime;
-
-					if (isAdjusting) {
-						const t = (currentTime - adjustStart) / adjustDuration;
-						if (t >= 1) {
-							pendulumPhase = adjustTo;
-							isAdjusting = false;
-						} else {
-							pendulumPhase = adjustFrom + (adjustTo - adjustFrom) * t;
-						}
-					} else {
-						pendulumPhase += dt / period;
-					}
-					if (pendulumPhase > 2) pendulumPhase -= 2;
-					const phase = Math.sin(Math.PI * pendulumPhase);
-					const angle = phase * 20;
 					this.$refs.pendulumRod.style.transform = `translateX(-50%) rotate(${angle}deg)`;
 				}
+
+				// 3. キューから古い時刻を削除
+				while(this.queued.length > 1 && this.audioContext.currentTime >= this.queued[0]) {
+					this.queued.shift();
+				}
+
 				requestAnimationFrame(updatePendulum);
 			};
 			requestAnimationFrame(updatePendulum);

@@ -30,6 +30,11 @@ export default defineConfig({
       testMatch: '**/timing.spec.js',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'utils',
+      testMatch: '**/utils.spec.js',
+      use: { ...devices['Desktop Chrome'] },
+    },
   ],
   webServer: {
     command: 'npx serve . -l 8000',
