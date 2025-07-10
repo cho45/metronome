@@ -39,13 +39,6 @@
 				min-width: 50px;
 			}
 
-			.flash {
-				animation-duration: 0.1s;
-				animation-name: a-flash;
-				animation-iteration-count: 1;
-				animation-timing-function: linear;
-			}
-
 			.keyboard-shortcut .list {
 				padding: 5px 0;
 				display: flex;
@@ -62,29 +55,6 @@
 				font-weight: 300;
 			}
 
-			@keyframes a-flash {
-				0% {
-					opacity: 0;
-					background: #000000;
-				}
-
-				90% {
-					opacity: 0;
-					background: #000000;
-				}
-
-				100% {
-					opacity: 0;
-					background: #ffffff;
-				}
-			}
-
-
-			@media (prefers-reduced-motion: reduce) {
-				.flash {
-					animation: none;
-				}
-			}
 
 			/* メトロノームスタイル */
 			.pendulum-container {

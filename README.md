@@ -26,9 +26,6 @@ This project is a simple metronome application built with WebAudioFont. Its main
 - **Settings saved in URL hash**  
   Tempo, rhythm, voice, and other settings are saved in the URL hash, making it easy to reload or share configurations.
 
-- **Visual flash feature**  
-  The screen flashes on each beat, providing a visual cue for the rhythm.
-
 - **PWA (Installable App) support**  
   With a web manifest included, this app can be installed to your device as a Progressive Web App (PWA) for offline and standalone use.
 

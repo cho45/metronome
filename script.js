@@ -76,7 +76,6 @@ Vue.createApp({
 		return {
 			playing: false,
 			bpm: 120,
-			flash: false,
 			volume: 100,
 
 			tapTempo: {
@@ -588,9 +587,6 @@ Vue.createApp({
 		start: async function () {
 			this.initializePlayback();
 			this.setupWorkerScheduler();
-			if (this.flash) {
-				this.setupFlashAnimation();
-			}
 			
 			console.log(this.pendulum.enabled)
 			if (this.pendulum.enabled) {
@@ -669,39 +665,9 @@ Vue.createApp({
 					const { duration, pitch, volume } = voice;
 					player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
 					
-					if (this.flash) {
-						this.queued.push(startTime);
-					}
 					startTime += queue.length;
 				}
 			};
-		},
-
-		setupFlashAnimation: function () {
-			const { audioContext } = this;
-			let lastFlash = performance.now();
-			
-			const updateFlash = () => {
-				if (!this.playing) return;
-				let flash = false;
-				while (this.queued.length && this.queued[0] <= audioContext.currentTime) {
-					this.queued.shift();
-					flash = true;
-				}
-
-				if (flash) {
-					const interval = performance.now() - lastFlash;
-					if (interval > 150) {
-						console.log({ interval });
-						document.body.className = "flash";
-						window.navigator.vibrate(100);
-					}
-					lastFlash = performance.now();
-				}
-
-				requestAnimationFrame(updateFlash);
-			};
-			requestAnimationFrame(updateFlash);
 		},
 
 		stop: function () {
@@ -790,10 +756,6 @@ Vue.createApp({
 					this.rhythm = rhythm;
 				}
 				console.log(this.rhythm);
-			}
-
-			if (params.has("flash")) {
-				this.flash = true;
 			}
 
 			if (params.has("pendulum")) {
