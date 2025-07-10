@@ -33,7 +33,7 @@ export default defineConfig({
     {
       name: 'utils',
       testMatch: '**/utils.spec.js',
-      use: { ...devices['Desktop Chrome'] },
+      // Node.js環境で実行（ブラウザ設定なし）
     },
   ],
   webServer: {
