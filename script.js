@@ -468,6 +468,7 @@ Vue.createApp({
 		pendulum: {
 			handler: function () {
 				this.updateHashParams();
+				this.setupPendulumAnimation();
 			},
 			deep: true
 		},
@@ -588,7 +589,6 @@ Vue.createApp({
 			this.initializePlayback();
 			this.setupWorkerScheduler();
 			
-			console.log(this.pendulum.enabled)
 			if (this.pendulum.enabled) {
 				this.setupPendulumAnimation();
 			}
@@ -782,9 +782,16 @@ Vue.createApp({
 		},
 
 		setupPendulumAnimation: function () {
-			this.pendulumLogic = new PendulumLogic(this.bpm);
+			if (this.pendulum.enabled) {
+				this.pendulumLogic = new PendulumLogic(this.bpm);
+				this.pendulumLogic.update(0, [0]);
+			} else {
+				this.pendulumLogic = null;
+			}
+
 			const updatePendulum = () => {
 				if (!this.playing) return;
+				if (!this.pendulumLogic) return;
 
 				// 1. ロジッククラスから位相を取得し、角度を計算
 				const sinPhase = this.pendulumLogic.update(this.audioContext.currentTime, this.queued);
@@ -796,7 +803,7 @@ Vue.createApp({
 				}
 
 				// 3. キューから古い時刻を削除
-				while(this.queued.length > 1 && this.audioContext.currentTime >= this.queued[0]) {
+				while(this.queued.length > 2 && this.audioContext.currentTime >= this.queued[0]) {
 					this.queued.shift();
 				}
 
