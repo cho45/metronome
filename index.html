@@ -81,23 +81,24 @@
 				position: relative;
 				width: 30px;
 				height: 30px;
-				background: #333;
+				background: radial-gradient(circle at 35% 35%, #555, #333, #222);
 				border-radius: 50%;
-				box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+				box-shadow: 0 6px 12px rgba(0,0,0,0.4);
 			}
 
 			.pendulum-rod {
 				position: absolute;
 				bottom: 15px;
 				left: 50%;
-				width: 3px;
+				width: 5px;
 				height: 90%;
-				background: linear-gradient(to top, #666, #333);
+				background: linear-gradient(to top, #888, #666, #444);
 				transform-origin: bottom center;
 				transform: translateX(-50%) rotate(0deg);
 				border-radius: 1.5px;
-				box-shadow: 0 0 10px rgba(0,0,0,0.3);
+				box-shadow: 0 0 12px rgba(0,0,0,0.4);
 			}
+
 
 			/* アクセシビリティ対応 */
 			@media (prefers-reduced-motion: reduce) {
