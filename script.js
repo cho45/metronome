@@ -89,6 +89,7 @@ Vue.createApp({
 				enabled: false,
 			},
 			pendulumLogic: null,
+			pendulumAnimationFrameId: null,
 
 			rhythm: {},
 			pendingRhythmGenerator: null, // リズム切り替え待機用
@@ -679,7 +680,13 @@ Vue.createApp({
 			}
 			player.cancelQueue(audioContext);
 			this.playing = false;
-			
+
+			// アニメーションループを停止
+			if (this.pendulumAnimationFrameId) {
+				cancelAnimationFrame(this.pendulumAnimationFrameId);
+				this.pendulumAnimationFrameId = null;
+			}
+
 			// 針を中央に戻す
 			this.$nextTick(() => {
 				if (this.$refs.pendulumRod) {
@@ -798,6 +805,12 @@ Vue.createApp({
 		},
 
 		setupPendulumAnimation: function () {
+			// 既存のアニメーションループを停止
+			if (this.pendulumAnimationFrameId) {
+				cancelAnimationFrame(this.pendulumAnimationFrameId);
+				this.pendulumAnimationFrameId = null;
+			}
+
 			if (this.pendulum.enabled) {
 				this.pendulumLogic = new PendulumLogic(this.bpm);
 				this.pendulumLogic.update(0, [0]);
@@ -812,7 +825,7 @@ Vue.createApp({
 				// 1. ロジッククラスから位相を取得し、角度を計算
 				const sinPhase = this.pendulumLogic.update(this.audioContext.currentTime, this.queued);
 				const angle = sinPhase * 20;
-				
+
 				// 2. 計算結果をDOMに適用
 				if (this.$refs.pendulumRod) {
 					this.$refs.pendulumRod.style.transform = `translateX(-50%) rotate(${angle}deg)`;
@@ -823,9 +836,9 @@ Vue.createApp({
 					this.queued.shift();
 				}
 
-				requestAnimationFrame(updatePendulum);
+				this.pendulumAnimationFrameId = requestAnimationFrame(updatePendulum);
 			};
-			requestAnimationFrame(updatePendulum);
+			this.pendulumAnimationFrameId = requestAnimationFrame(updatePendulum);
 		},
 
 		loadMidiSettings: async function () {
