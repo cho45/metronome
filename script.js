@@ -92,6 +92,8 @@ Vue.createApp({
 
 			rhythm: {},
 			pendingRhythmGenerator: null, // リズム切り替え待機用
+			currentRhythmVoices: new Map(), // 現在のリズムの音源キャッシュ
+			currentDefaultVoice: null, // デフォルト音源の実データキャッシュ
 			rhythms: [
 				{
 					name: "1",
@@ -442,14 +444,20 @@ Vue.createApp({
 			}
 			this.updateHashParams();
 		},
-		voice: function () {
+		voice: async function () {
 			this.updateHashParams();
+			// デフォルト音源の変更時も再読み込み
+			if (this.playing) {
+				this.currentDefaultVoice = await this.loadVoice(this.voice.src, this.voice.file);
+			}
 		},
-		rhythm: function() {
+		rhythm: async function() {
 			this.updateHashParams();
 			if (this.playing) {
 				// 再生中は次の4分音符境界まで待機
 				this.pendingRhythmGenerator = this.rhythm.notes();
+				// 音源を事前読み込み
+				await this.loadCurrentRhythmVoices();
 			} else {
 				// 停止中は即座に切り替え
 				this.rhythmGenerator = this.rhythm.notes();
@@ -586,19 +594,20 @@ Vue.createApp({
 
 	methods: {
 		start: async function () {
-			this.initializePlayback();
+			await this.initializePlayback();
 			this.setupWorkerScheduler();
-			
+
 			if (this.pendulum.enabled) {
 				this.setupPendulumAnimation();
 			}
 		},
 
-		initializePlayback: function () {
+		initializePlayback: async function () {
 			const { audioContext } = this;
 			this.playing = true;
 			this.queued = [];
 			this.rhythmGenerator = this.rhythm.notes();
+			await this.loadCurrentRhythmVoices();
 			audioContext.resume();
 		},
 
@@ -614,10 +623,10 @@ Vue.createApp({
 			this.timerWorker = createWorker(workerScript);
 			this.timerWorker.postMessage({ interval: 20 });
 
-			this.timerWorker.onmessage = async () => {
+			this.timerWorker.onmessage = () => {
 				const sec = 4 * 60 / this.bpm;
 				const quarterPeriod = 60 / this.bpm; // 4分音符の間隔
-				
+
 				// 4分音符境界のチェックとリズム切り替え
 				while (quarterTime <= audioContext.currentTime + QUEUE_PREPARING_TIME) {
 					if (this.pendingRhythmGenerator) {
@@ -625,46 +634,38 @@ Vue.createApp({
 						this.rhythmGenerator = this.pendingRhythmGenerator;
 						this.pendingRhythmGenerator = null;
 					}
-					
+
 					// 針用のキューイング
 					if (this.pendulum.enabled) {
 						this.queued.push(quarterTime);
 					}
-					
+
 					quarterTime += quarterPeriod;
 				}
-				
-				// 必要な音源を事前に読み込み
-				const voices = new Map();
-				if (this.rhythm.voices) {
-					for (let name of this.rhythm.voices) {
-						const voice = this.voices.find(i => i.name === name);
-						voices.set(name, { voice, drum: await this.loadVoice(voice.src, voice.file) });
-					}
-				}
-				
+
 				while (startTime < audioContext.currentTime + QUEUE_PREPARING_TIME) {
 					const note = this.rhythmGenerator.next().value;
 					const queue = {
 						length: 1 / note.len * sec,
 						volumex: note.volume
 					};
-					
-					// 音源を決定
+
+					// 音源を決定（キャッシュから同期的に取得）
 					let voice, drum;
-					if (note.voice && voices.has(note.voice)) {
+					if (note.voice && this.currentRhythmVoices.has(note.voice)) {
 						// 指定された音源を使用
-						voice = voices.get(note.voice).voice;
-						drum = voices.get(note.voice).drum;
+						const cached = this.currentRhythmVoices.get(note.voice);
+						voice = cached.voice;
+						drum = cached.drum;
 					} else {
 						// デフォルト音源を使用
 						voice = this.voice;
-						drum = await this.loadVoice(this.voice.src, this.voice.file);
+						drum = this.currentDefaultVoice;
 					}
-					
+
 					const { duration, pitch, volume } = voice;
 					player.queueWaveTable(audioContext, channelMaster.input, drum, startTime, pitch, duration, volume * queue.volumex);
-					
+
 					startTime += queue.length;
 				}
 			};
@@ -724,6 +725,21 @@ Vue.createApp({
 				}));
 			}
 			return this._loadedVoices.get(name);
+		},
+
+		loadCurrentRhythmVoices: async function () {
+			const voices = new Map();
+			if (this.rhythm.voices) {
+				for (let name of this.rhythm.voices) {
+					const voice = this.voices.find(i => i.name === name);
+					const drum = await this.loadVoice(voice.src, voice.file);
+					voices.set(name, { voice, drum });
+				}
+			}
+			this.currentRhythmVoices = voices;
+
+			// デフォルト音源も読み込み
+			this.currentDefaultVoice = await this.loadVoice(this.voice.src, this.voice.file);
 		},
 
 		loadHashParams: function () {
