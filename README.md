@@ -30,3 +30,29 @@ This project is a simple metronome application built with WebAudioFont. Its main
   With a web manifest included, this app can be installed to your device as a Progressive Web App (PWA) for offline and standalone use.
 
 All main logic is implemented in `script.js`, including WebAudioFont player/channel setup, soundfont loading, rhythm pattern management, and MIDI integration.
+
+## Running Locally
+
+Start a local server:
+
+```bash
+npm run serve
+```
+
+Then open http://localhost:3000 in your browser.
+
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run UI tests only
+npm run test:ui
+
+# Run MIDI tests only
+npm run test:midi
+
+# Run timing tests only
+npm run test:timing
+```
